@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -63,9 +64,15 @@ class VolumeLockService : Service() {
                     isScreenOff = true
                     captureVolumes()
                 }
-                Intent.ACTION_SCREEN_ON,
+                Intent.ACTION_SCREEN_ON -> {
+                    // Keep lock values until the user actually unlocks.
+                    // Some devices allow volume changes around wake events.
+                    isScreenOff = false
+                    updateNotification()
+                }
                 Intent.ACTION_USER_PRESENT -> {
                     isScreenOff = false
+                    restoreAllLockedVolumes()
                     clearLock()
                 }
             }
@@ -115,8 +122,23 @@ class VolumeLockService : Service() {
         updateNotification()
     }
 
+    private fun restoreAllLockedVolumes() {
+        restoreStreamIfNeeded(AudioManager.STREAM_MUSIC, lockedMedia)
+        restoreStreamIfNeeded(AudioManager.STREAM_RING, lockedRing)
+        restoreStreamIfNeeded(AudioManager.STREAM_NOTIFICATION, lockedNotification)
+        restoreStreamIfNeeded(AudioManager.STREAM_ALARM, lockedAlarm)
+    }
+
+    private fun restoreStreamIfNeeded(stream: Int, target: Int) {
+        if (target < 0) return
+        val current = audioManager.getStreamVolume(stream)
+        if (current != target) {
+            audioManager.setStreamVolume(stream, target, 0)
+        }
+    }
+
     private fun revertIfLocked(stream: Int) {
-        if (!isScreenOff) return
+        if (!shouldEnforceLock()) return
         val target = when (stream) {
             AudioManager.STREAM_MUSIC        -> lockedMedia
             AudioManager.STREAM_RING         -> lockedRing
@@ -131,6 +153,23 @@ class VolumeLockService : Service() {
             handler.post {
                 audioManager.setStreamVolume(stream, target, 0)
             }
+        }
+    }
+
+    private fun shouldEnforceLock(): Boolean {
+        if (lockedMedia < 0 && lockedRing < 0 && lockedNotification < 0 && lockedAlarm < 0) {
+            return false
+        }
+        // Enforce while the display is off OR while keyguard is still locked.
+        return isScreenOff || isDeviceLocked()
+    }
+
+    private fun isDeviceLocked(): Boolean {
+        val km = getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            km.isDeviceLocked
+        } else {
+            km.isKeyguardLocked
         }
     }
 
@@ -172,7 +211,7 @@ class VolumeLockService : Service() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        val contentText = if (isScreenOff && lockedMedia >= 0) {
+        val contentText = if (shouldEnforceLock()) {
             "Locked — Media: $lockedMedia | Ring: $lockedRing | " +
                     "Notification: $lockedNotification | Alarm: $lockedAlarm"
         } else {
