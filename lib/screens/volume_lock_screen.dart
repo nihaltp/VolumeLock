@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/app_state.dart';
-import '../services/volume_service.dart';
+import 'package:volume_lock/models/app_state.dart';
+import 'package:volume_lock/services/volume_service.dart';
 
 class VolumeLockScreen extends StatefulWidget {
   const VolumeLockScreen({super.key});
@@ -48,8 +48,7 @@ class _VolumeLockScreenState extends State<VolumeLockScreen> {
           context: context,
           builder: (_) => const _PermissionDialog(
             title: 'Permission Required',
-            content:
-                'To lock notification and ring volumes, please grant '
+            content: 'To lock notification and ring volumes, please grant '
                 '"Do Not Disturb access" in the next screen.',
             actionLabel: 'Open Settings',
           ),
@@ -61,7 +60,7 @@ class _VolumeLockScreenState extends State<VolumeLockScreen> {
       }
     }
     await state.setVolumeLockEnabled(value);
-    if (value) _refreshVolumes();
+    if (value) await _refreshVolumes();
   }
 
   @override
@@ -195,9 +194,9 @@ class _VolumeLockScreenState extends State<VolumeLockScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          _InfoSection(
+          const _InfoSection(
             title: 'How it works',
-            bullets: const [
+            bullets: [
               'Enable Volume Lock to capture current volumes.',
               'When the screen turns off, those volumes are recorded.',
               'If any volume is changed while the screen is off, it is '
@@ -214,12 +213,6 @@ class _VolumeLockScreenState extends State<VolumeLockScreen> {
 // ─── Sub-widgets ─────────────────────────────────────────────────────────────
 
 class _VolumeRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int? volume;
-  final int? maxVolume;
-  final int? lockedVolume;
-
   const _VolumeRow({
     required this.icon,
     required this.label,
@@ -227,6 +220,11 @@ class _VolumeRow extends StatelessWidget {
     this.maxVolume,
     this.lockedVolume,
   });
+  final IconData icon;
+  final String label;
+  final int? volume;
+  final int? maxVolume;
+  final int? lockedVolume;
 
   @override
   Widget build(BuildContext context) {
@@ -284,10 +282,9 @@ class _VolumeRow extends StatelessWidget {
 }
 
 class _InfoSection extends StatelessWidget {
+  const _InfoSection({required this.title, required this.bullets});
   final String title;
   final List<String> bullets;
-
-  const _InfoSection({required this.title, required this.bullets});
 
   @override
   Widget build(BuildContext context) {
@@ -324,15 +321,14 @@ class _InfoSection extends StatelessWidget {
 }
 
 class _PermissionDialog extends StatelessWidget {
-  final String title;
-  final String content;
-  final String actionLabel;
-
   const _PermissionDialog({
     required this.title,
     required this.content,
     required this.actionLabel,
   });
+  final String title;
+  final String content;
+  final String actionLabel;
 
   @override
   Widget build(BuildContext context) {

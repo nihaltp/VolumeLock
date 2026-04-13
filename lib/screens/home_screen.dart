@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/app_state.dart';
-import 'volume_lock_screen.dart';
-import 'app_volume_lock_screen.dart';
+import 'package:volume_lock/models/app_state.dart';
+import 'package:volume_lock/screens/app_volume_lock_screen.dart';
+import 'package:volume_lock/screens/volume_lock_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -42,8 +42,7 @@ class HomeScreen extends StatelessWidget {
           _FeatureCard(
             icon: Icons.apps,
             title: 'App Volume Lock',
-            subtitle:
-                'Remember the media volume for selected apps. When you '
+            subtitle: 'Remember the media volume for selected apps. When you '
                 'return to a tracked app, its volume is automatically '
                 'restored.',
             isEnabled: state.appVolumeLockEnabled,
@@ -55,10 +54,9 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          _InfoCard(
+          const _InfoCard(
             icon: Icons.info_outline,
-            text:
-                'Both features run as foreground services and require '
+            text: 'Both features run as foreground services and require '
                 'certain permissions. Follow the in-app prompts to grant them.',
           ),
         ],
@@ -70,12 +68,6 @@ class HomeScreen extends StatelessWidget {
 // ─── Helper widgets ────────────────────────────────────────────────────────
 
 class _FeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isEnabled;
-  final VoidCallback onTap;
-
   const _FeatureCard({
     required this.icon,
     required this.title,
@@ -83,11 +75,17 @@ class _FeatureCard extends StatelessWidget {
     required this.isEnabled,
     required this.onTap,
   });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isEnabled;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = isEnabled ? theme.colorScheme.primary : theme.colorScheme.outline;
+    final color =
+        isEnabled ? theme.colorScheme.primary : theme.colorScheme.outline;
 
     return Card(
       child: InkWell(
@@ -99,7 +97,7 @@ class _FeatureCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: color.withOpacity(0.15),
+                backgroundColor: color.withValues(alpha: 0.15),
                 child: Icon(icon, color: color, size: 28),
               ),
               const SizedBox(width: 16),
@@ -159,10 +157,9 @@ class _FeatureCard extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.icon, required this.text});
   final IconData icon;
   final String text;
-
-  const _InfoCard({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {

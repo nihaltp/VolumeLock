@@ -1,14 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../services/volume_service.dart';
+import 'package:volume_lock/services/volume_service.dart';
 
 /// Represents the volume levels for all stream types.
 class VolumeSnapshot {
-  final int media;
-  final int ring;
-  final int notification;
-  final int alarm;
 
   const VolumeSnapshot({
     required this.media,
@@ -17,27 +13,27 @@ class VolumeSnapshot {
     required this.alarm,
   });
 
-  Map<String, int> toMap() => {
-        'media': media,
-        'ring': ring,
-        'notification': notification,
-        'alarm': alarm,
-      };
-
   factory VolumeSnapshot.fromMap(Map<String, int> map) => VolumeSnapshot(
         media: map['media'] ?? 0,
         ring: map['ring'] ?? 0,
         notification: map['notification'] ?? 0,
         alarm: map['alarm'] ?? 0,
       );
+  final int media;
+  final int ring;
+  final int notification;
+  final int alarm;
+
+  Map<String, int> toMap() => {
+        'media': media,
+        'ring': ring,
+        'notification': notification,
+        'alarm': alarm,
+      };
 }
 
 /// Per-app volume memory entry.
 class AppVolumeEntry {
-  final String packageName;
-  final String appName;
-  int? rememberedMediaVolume;
-  bool isTracked;
 
   AppVolumeEntry({
     required this.packageName,
@@ -45,10 +41,18 @@ class AppVolumeEntry {
     this.rememberedMediaVolume,
     this.isTracked = false,
   });
+  final String packageName;
+  final String appName;
+  int? rememberedMediaVolume;
+  bool isTracked;
 }
 
 /// Central application state managed via ChangeNotifier / Provider.
 class AppState extends ChangeNotifier {
+
+  AppState() {
+    _loadPrefs();
+  }
   bool _volumeLockEnabled = false;
   bool _appVolumeLockEnabled = false;
 
@@ -61,10 +65,6 @@ class AppState extends ChangeNotifier {
   VolumeSnapshot? get lockedVolumes => _lockedVolumes;
   List<AppVolumeEntry> get installedApps => List.unmodifiable(_installedApps);
   Map<String, AppVolumeEntry> get appEntries => Map.unmodifiable(_appEntries);
-
-  AppState() {
-    _loadPrefs();
-  }
 
   // ─── Persistence ──────────────────────────────────────────────────────────
 

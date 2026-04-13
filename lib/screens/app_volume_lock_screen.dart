@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/app_state.dart';
-import '../services/volume_service.dart';
+import 'package:volume_lock/models/app_state.dart';
+import 'package:volume_lock/services/volume_service.dart';
 
 class AppVolumeLockScreen extends StatefulWidget {
   const AppVolumeLockScreen({super.key});
@@ -261,10 +261,10 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
 // ─── App list tile ────────────────────────────────────────────────────────────
 
 class _AppTile extends StatelessWidget {
-  final AppVolumeEntry entry;
-  final ValueChanged<bool> onToggle;
 
   const _AppTile({required this.entry, required this.onToggle});
+  final AppVolumeEntry entry;
+  final ValueChanged<bool> onToggle;
 
   @override
   Widget build(BuildContext context) {

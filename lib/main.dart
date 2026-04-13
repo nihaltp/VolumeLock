@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'models/app_state.dart';
-import 'screens/home_screen.dart';
+import 'package:volume_lock/models/app_state.dart';
+import 'package:volume_lock/screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,6 @@ class VolumeLockApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF1565C0),
-          brightness: Brightness.light,
         ),
         useMaterial3: true,
         appBarTheme: const AppBarTheme(
@@ -56,7 +55,6 @@ class VolumeLockApp extends StatelessWidget {
           ),
         ),
       ),
-      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }
