@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Volume Lock Debug</string>
+    <string name="accessibility_service_description">
+        Volume Lock uses the Accessibility Service to detect which app is in
+        the foreground so it can restore the correct media volume automatically.
+        No screen content is read or transmitted.
+    </string>
+    <color name="ic_launcher_background">#1565C0</color>
+</resources>
