@@ -43,7 +43,7 @@ volume_lock/
 ├── android/
 │   └── app/src/main/
 │       ├── AndroidManifest.xml          # Permissions, services, receivers
-│       ├── kotlin/com/example/volume_lock/
+│       ├── kotlin/com/nihaltp/volume_lock/
 │       │   ├── MainActivity.kt          # Flutter <-> Android MethodChannel bridge
 │       │   ├── VolumeLockService.kt     # Foreground service — Volume Lock
 │       │   ├── AppVolumeLockService.kt  # Foreground service — App Volume Lock

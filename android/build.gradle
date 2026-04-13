@@ -1,6 +1,6 @@
 // Top-level build file for the Android part of the Flutter project.
 buildscript {
-    ext.kotlin_version = '1.9.10'
+    ext.kotlin_version = '2.2.20'
     repositories {
         google()
         mavenCentral()

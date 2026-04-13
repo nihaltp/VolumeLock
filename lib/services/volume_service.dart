@@ -2,8 +2,8 @@ import 'package:flutter/services.dart';
 
 /// Flutter-side bridge to the Android native volume services via MethodChannel.
 class VolumeService {
-  static const _channel = MethodChannel('com.example.volume_lock/volume');
-  static const _appsChannel = MethodChannel('com.example.volume_lock/apps');
+  static const _channel = MethodChannel('com.nihaltp.volume_lock/volume');
+  static const _appsChannel = MethodChannel('com.nihaltp.volume_lock/apps');
 
   // ─── Volume Lock service ───────────────────────────────────────────────────
 

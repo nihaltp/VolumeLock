@@ -1,4 +1,4 @@
-package com.example.volume_lock
+package com.nihaltp.volume_lock
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -33,11 +33,11 @@ class AppVolumeLockService : Service() {
         private const val NOTIFICATION_ID = 1002
 
         /** Broadcast action sent by [AppVolumeAccessibilityService]. */
-        const val ACTION_APP_CHANGED = "com.example.volume_lock.ACTION_APP_CHANGED"
+        const val ACTION_APP_CHANGED = "com.nihaltp.volume_lock.ACTION_APP_CHANGED"
         const val EXTRA_PACKAGE_NAME = "packageName"
 
         /** Broadcast action sent by [MainActivity] to update tracked packages. */
-        const val ACTION_UPDATE_PACKAGES = "com.example.volume_lock.ACTION_UPDATE_PACKAGES"
+        const val ACTION_UPDATE_PACKAGES = "com.nihaltp.volume_lock.ACTION_UPDATE_PACKAGES"
         const val EXTRA_TRACKED_PACKAGES = "trackedPackages"
     }
 

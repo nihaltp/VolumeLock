@@ -1,4 +1,4 @@
-package com.example.volume_lock
+package com.nihaltp.volume_lock
 
 import android.content.BroadcastReceiver
 import android.content.Context

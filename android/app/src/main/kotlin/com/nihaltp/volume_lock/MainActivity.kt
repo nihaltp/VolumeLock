@@ -1,4 +1,4 @@
-package com.example.volume_lock
+package com.nihaltp.volume_lock
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,8 +16,8 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
 
-    private val volumeChannel = "com.example.volume_lock/volume"
-    private val appsChannel  = "com.example.volume_lock/apps"
+    private val volumeChannel = "com.nihaltp.volume_lock/volume"
+    private val appsChannel  = "com.nihaltp.volume_lock/apps"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

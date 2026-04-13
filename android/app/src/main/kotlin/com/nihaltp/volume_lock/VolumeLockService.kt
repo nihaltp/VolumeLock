@@ -1,4 +1,4 @@
-package com.example.volume_lock
+package com.nihaltp.volume_lock
 
 import android.app.Notification
 import android.app.NotificationManager
