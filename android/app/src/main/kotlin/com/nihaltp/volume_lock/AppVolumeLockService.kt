@@ -9,8 +9,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 /**
  * Foreground service that implements the "App Volume Lock" feature.
@@ -77,7 +79,16 @@ class AppVolumeLockService : Service() {
             addAction(ACTION_APP_CHANGED)
             addAction(ACTION_UPDATE_PACKAGES)
         }
-        registerReceiver(appChangeReceiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.registerReceiver(
+                this,
+                appChangeReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            registerReceiver(appChangeReceiver, filter)
+        }
         startForeground(NOTIFICATION_ID, buildNotification())
     }
 
