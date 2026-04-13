@@ -18,6 +18,9 @@
     <!-- Post notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Required to appear in Do Not Disturb access settings -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+
     <!-- ── Application ──────────────────────────────────────────────────── -->
 
     <application
