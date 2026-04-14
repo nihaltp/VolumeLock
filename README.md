@@ -115,6 +115,12 @@ flutter test
 
 ---
 
+## Changelog
+
+Release history is tracked in [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Dependencies
 
 | Package | Purpose |
