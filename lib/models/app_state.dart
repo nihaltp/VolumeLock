@@ -5,7 +5,6 @@ import 'package:volume_lock/services/volume_service.dart';
 
 /// Represents the volume levels for all stream types.
 class VolumeSnapshot {
-
   const VolumeSnapshot({
     required this.media,
     required this.ring,
@@ -34,7 +33,6 @@ class VolumeSnapshot {
 
 /// Per-app volume memory entry.
 class AppVolumeEntry {
-
   AppVolumeEntry({
     required this.packageName,
     required this.appName,
@@ -49,7 +47,6 @@ class AppVolumeEntry {
 
 /// Central application state managed via ChangeNotifier / Provider.
 class AppState extends ChangeNotifier {
-
   AppState() {
     _loadPrefs();
   }
@@ -91,13 +88,16 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('volume_lock_enabled', _volumeLockEnabled);
     await prefs.setBool('app_volume_lock_enabled', _appVolumeLockEnabled);
 
-    final tracked =
-        _appEntries.values.where((e) => e.isTracked).map((e) => e.packageName).toList();
+    final tracked = _appEntries.values
+        .where((e) => e.isTracked)
+        .map((e) => e.packageName)
+        .toList();
     await prefs.setStringList('tracked_apps', tracked);
     for (final entry in _appEntries.values) {
       await prefs.setString('app_name_${entry.packageName}', entry.appName);
       if (entry.rememberedMediaVolume != null) {
-        await prefs.setInt('app_vol_${entry.packageName}', entry.rememberedMediaVolume!);
+        await prefs.setInt(
+            'app_vol_${entry.packageName}', entry.rememberedMediaVolume!);
       }
     }
   }
@@ -127,7 +127,10 @@ class AppState extends ChangeNotifier {
     _appVolumeLockEnabled = value;
     if (value) {
       await VolumeService.startAppVolumeLockService(
-        _appEntries.values.where((e) => e.isTracked).map((e) => e.packageName).toList(),
+        _appEntries.values
+            .where((e) => e.isTracked)
+            .map((e) => e.packageName)
+            .toList(),
       );
     } else {
       await VolumeService.stopAppVolumeLockService();
@@ -164,6 +167,30 @@ class AppState extends ChangeNotifier {
     );
     entry.isTracked = tracked;
     _appEntries[packageName] = entry;
+
+    if (_appVolumeLockEnabled) {
+      final trackedPkgs = _appEntries.values
+          .where((e) => e.isTracked)
+          .map((e) => e.packageName)
+          .toList();
+      await VolumeService.updateTrackedApps(trackedPkgs);
+    }
+
+    await _savePrefs();
+    notifyListeners();
+  }
+
+  Future<void> setAppTrackingForPackages(
+    Iterable<String> packageNames,
+    bool tracked,
+  ) async {
+    final packageSet = packageNames.toSet();
+    for (final entry in _installedApps) {
+      if (packageSet.contains(entry.packageName)) {
+        entry.isTracked = tracked;
+        _appEntries[entry.packageName] = entry;
+      }
+    }
 
     if (_appVolumeLockEnabled) {
       final trackedPkgs = _appEntries.values

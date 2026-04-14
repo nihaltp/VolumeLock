@@ -10,7 +10,8 @@ class VolumeService {
   /// Start the foreground Volume Lock service on Android.
   static Future<bool> startVolumeLockService() async {
     try {
-      final result = await _channel.invokeMethod<bool>('startVolumeLockService');
+      final result =
+          await _channel.invokeMethod<bool>('startVolumeLockService');
       return result ?? false;
     } on PlatformException {
       return false;
@@ -30,7 +31,8 @@ class VolumeService {
   // ─── App Volume Lock service ───────────────────────────────────────────────
 
   /// Start the App Volume Lock accessibility service with [trackedPackages].
-  static Future<bool> startAppVolumeLockService(List<String> trackedPackages) async {
+  static Future<bool> startAppVolumeLockService(
+      List<String> trackedPackages) async {
     try {
       final result = await _channel.invokeMethod<bool>(
         'startAppVolumeLockService',
@@ -45,7 +47,8 @@ class VolumeService {
   /// Stop the App Volume Lock service.
   static Future<bool> stopAppVolumeLockService() async {
     try {
-      final result = await _channel.invokeMethod<bool>('stopAppVolumeLockService');
+      final result =
+          await _channel.invokeMethod<bool>('stopAppVolumeLockService');
       return result ?? false;
     } on PlatformException {
       return false;
@@ -70,7 +73,8 @@ class VolumeService {
   /// media, ring, notification, alarm (and their max counterparts).
   static Future<Map<String, int>> getCurrentVolumes() async {
     try {
-      final raw = await _channel.invokeMapMethod<String, int>('getCurrentVolumes');
+      final raw =
+          await _channel.invokeMapMethod<String, int>('getCurrentVolumes');
       return raw ?? {};
     } on PlatformException {
       return {};
@@ -83,8 +87,7 @@ class VolumeService {
   /// 'appName' keys.
   static Future<List<Map<String, String>>> getInstalledApps() async {
     try {
-      final raw =
-          await _appsChannel.invokeListMethod<Map>('getInstalledApps');
+      final raw = await _appsChannel.invokeListMethod<Map>('getInstalledApps');
       if (raw == null) return [];
       return raw
           .map((m) => {
@@ -93,6 +96,8 @@ class VolumeService {
               })
           .toList();
     } on PlatformException {
+      return [];
+    } on MissingPluginException {
       return [];
     }
   }

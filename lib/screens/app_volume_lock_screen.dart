@@ -20,6 +20,7 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
   void initState() {
     super.initState();
     _checkAccessibility();
+    _loadApps();
   }
 
   Future<void> _checkAccessibility() async {
@@ -29,8 +30,13 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
 
   Future<void> _loadApps() async {
     setState(() => _loading = true);
-    await context.read<AppState>().loadInstalledApps();
-    if (mounted) setState(() => _loading = false);
+    try {
+      await context.read<AppState>().loadInstalledApps();
+    } catch (_) {
+      // Keep UI responsive if package query fails on a device-specific edge case.
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _toggleAppVolumeLock(AppState state, bool value) async {
@@ -86,6 +92,8 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
         if (a.isTracked != b.isTracked) return a.isTracked ? -1 : 1;
         return a.appName.compareTo(b.appName);
       });
+    final hasApps = apps.isNotEmpty;
+    final allVisibleSelected = hasApps && apps.every((a) => a.isTracked);
 
     return Scaffold(
       appBar: AppBar(
@@ -184,6 +192,16 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
                         ),
                       ),
                     ),
+                    TextButton(
+                      onPressed: _loading || !hasApps
+                          ? null
+                          : () => state.setAppTrackingForPackages(
+                                apps.map((a) => a.packageName),
+                                !allVisibleSelected,
+                              ),
+                      child: Text(
+                          allVisibleSelected ? 'Deselect All' : 'Select All'),
+                    ),
                     TextButton.icon(
                       onPressed: _loading ? null : _loadApps,
                       icon: _loading
@@ -261,7 +279,6 @@ class _AppVolumeLockScreenState extends State<AppVolumeLockScreen> {
 // ─── App list tile ────────────────────────────────────────────────────────────
 
 class _AppTile extends StatelessWidget {
-
   const _AppTile({required this.entry, required this.onToggle});
   final AppVolumeEntry entry;
   final ValueChanged<bool> onToggle;
@@ -290,13 +307,11 @@ class _AppTile extends StatelessWidget {
         ),
         title: Text(
           entry.appName,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style:
+              theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
-          vol != null
-              ? 'Remembered volume: $vol'
-              : 'No remembered volume yet',
+          vol != null ? 'Remembered volume: $vol' : 'No remembered volume yet',
           style: theme.textTheme.bodySmall?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
           ),

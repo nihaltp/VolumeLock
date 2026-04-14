@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ResolveInfo
 import android.media.AudioManager
 import android.os.Build
 import android.provider.Settings
@@ -185,39 +186,64 @@ class MainActivity : FlutterActivity() {
 
     private fun getInstalledApps(): List<Map<String, String>> {
         val pm = packageManager
-        val intent = Intent(Intent.ACTION_MAIN).apply {
+
+        // Prefer launcher-intent resolution because it aligns with what users
+        // can actually open and is more reliable across OEM package visibility
+        // behavior.
+        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
         @Suppress("DEPRECATION")
-        val resolveInfoList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        val launcherMatches: List<ResolveInfo> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             pm.queryIntentActivities(
-                intent,
-                PackageManager.ResolveInfoFlags.of(0)
+                launcherIntent,
+                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
             )
         } else {
-            pm.queryIntentActivities(intent, 0)
+            pm.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
         }
-        return resolveInfoList
+        val launcherPackages = launcherMatches
             .asSequence()
-            .filter { it.activityInfo.packageName != packageName }
-            .map { ri ->
-                val pkg = ri.activityInfo.packageName
+            .mapNotNull { it.activityInfo?.packageName }
+            .filter { it != packageName }
+            .toMutableSet()
+
+        @Suppress("DEPRECATION")
+        val installedApps = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
+        } else {
+            pm.getInstalledApplications(0)
+        }
+
+        // Keep fallback union to capture apps some OEMs may not return through
+        // launcher query, while still filtering to launchable targets.
+        val launchableFromInstalled = installedApps.filter { app ->
+            app.packageName != packageName && pm.getLaunchIntentForPackage(app.packageName) != null
+        }.map { it.packageName }
+
+        val candidatePackages = launcherPackages
+            .apply { addAll(launchableFromInstalled) }
+
+        return candidatePackages
+            .asSequence()
+            .map { pkg ->
                 val label = try {
-                    @Suppress("DEPRECATION")
-                    pm.getApplicationLabel(
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))
-                        } else {
-                            pm.getApplicationInfo(pkg, 0)
-                        }
-                    ).toString()
+                    val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        pm.getApplicationInfo(
+                            pkg,
+                            PackageManager.ApplicationInfoFlags.of(0)
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        pm.getApplicationInfo(pkg, 0)
+                    }
+                    pm.getApplicationLabel(appInfo).toString()
                 } catch (_: PackageManager.NameNotFoundException) {
                     pkg
                 }
                 mapOf("packageName" to pkg, "appName" to label)
             }
-            .distinctBy { it["packageName"] }
-            .sortedBy { it["appName"] }
+            .sortedBy { it["appName"]?.lowercase() }
             .toList()
     }
 }
