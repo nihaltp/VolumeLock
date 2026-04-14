@@ -52,7 +52,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('App Volume Lock'));
-      await tester.pumpAndSettle();
+      // Avoid waiting for full settle since this screen can keep scheduling
+      // frames (e.g. async loading/progress indicators) in tests.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('Select apps to track'), findsOneWidget);
     });
