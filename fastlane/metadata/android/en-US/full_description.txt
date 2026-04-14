@@ -1,0 +1,15 @@
+Volume Lock gives you fine-grained control over your Android audio behavior with two core features:
+
+- Volume Lock: when the screen turns off, current media, ring, notification, and alarm volumes are locked and automatically restored if changed.
+- App Volume Lock: saves and restores media volume for selected apps when you return to them.
+
+Key highlights:
+- Tracks and restores audio levels automatically
+- Lets you choose which apps participate in App Volume Lock
+- Keeps behavior consistent after reboot
+
+Permissions:
+- Do Not Disturb / Notification Policy access is needed to lock ring and notification volumes on Android 6+
+- Accessibility service is needed to detect foreground app changes for App Volume Lock
+
+Built with Flutter

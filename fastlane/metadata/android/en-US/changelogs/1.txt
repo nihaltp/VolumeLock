@@ -1,0 +1,5 @@
+Initial release of Volume Lock.
+
+- Added Volume Lock for media, ring, notification, and alarm streams
+- Added App Volume Lock for selected apps
+- Added app selector UI and persistent settings
