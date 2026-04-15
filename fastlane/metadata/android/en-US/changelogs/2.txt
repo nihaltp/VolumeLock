@@ -1,0 +1,1 @@
+Show all app icon/logo in app list. Fix bug for adaptive icon. Fallback to letter if icon missing. Many grunt.
