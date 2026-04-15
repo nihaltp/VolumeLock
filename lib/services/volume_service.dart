@@ -83,9 +83,8 @@ class VolumeService {
 
   // ─── Installed apps ────────────────────────────────────────────────────────
 
-  /// Return a list of user-installed apps as maps with 'packageName' and
-  /// 'appName' keys.
-  static Future<List<Map<String, String>>> getInstalledApps() async {
+  /// Return a list of user-installed apps as maps with 'packageName', 'appName', and 'icon' (base64 string) keys.
+  static Future<List<Map<String, dynamic>>> getInstalledApps() async {
     try {
       final raw = await _appsChannel.invokeListMethod<Map>('getInstalledApps');
       if (raw == null) return [];
@@ -93,6 +92,7 @@ class VolumeService {
           .map((m) => {
                 'packageName': m['packageName'] as String,
                 'appName': m['appName'] as String,
+                'icon': m['icon'] as String?,
               })
           .toList();
     } on PlatformException {

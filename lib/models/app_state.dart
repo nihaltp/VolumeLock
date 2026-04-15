@@ -1,6 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:volume_lock/services/volume_service.dart';
 
 /// Represents the volume levels for all stream types.
@@ -36,11 +37,13 @@ class AppVolumeEntry {
   AppVolumeEntry({
     required this.packageName,
     required this.appName,
+    this.iconBytes,
     this.rememberedMediaVolume,
     this.isTracked = false,
   });
   final String packageName;
   final String appName;
+  final Uint8List? iconBytes;
   int? rememberedMediaVolume;
   bool isTracked;
 }
@@ -97,7 +100,9 @@ class AppState extends ChangeNotifier {
       await prefs.setString('app_name_${entry.packageName}', entry.appName);
       if (entry.rememberedMediaVolume != null) {
         await prefs.setInt(
-            'app_vol_${entry.packageName}', entry.rememberedMediaVolume!);
+          'app_vol_${entry.packageName}',
+          entry.rememberedMediaVolume!,
+        );
       }
     }
   }
@@ -148,6 +153,9 @@ class AppState extends ChangeNotifier {
           AppVolumeEntry(
             packageName: pkg,
             appName: a['appName'] as String,
+            iconBytes: a['icon'] != null && (a['icon'] as String).isNotEmpty
+                ? base64Decode(a['icon'] as String)
+                : null,
           );
     }).toList();
 

@@ -227,7 +227,7 @@ class MainActivity : FlutterActivity() {
         return candidatePackages
             .asSequence()
             .map { pkg ->
-                val label = try {
+                val label: String = try {
                     val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         pm.getApplicationInfo(
                             pkg,
@@ -241,7 +241,42 @@ class MainActivity : FlutterActivity() {
                 } catch (_: PackageManager.NameNotFoundException) {
                     pkg
                 }
-                mapOf("packageName" to pkg, "appName" to label)
+
+                // Icon: try BitmapDrawable direct, else draw to bitmap, use 64px
+                val iconBase64: String = try {
+                    val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        pm.getApplicationInfo(
+                            pkg,
+                            PackageManager.ApplicationInfoFlags.of(0)
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        pm.getApplicationInfo(pkg, 0)
+                    }
+                    val drawable = pm.getApplicationIcon(appInfo)
+                    val size = 64
+                    val bitmap = if (drawable is android.graphics.drawable.BitmapDrawable) {
+                        drawable.bitmap
+                    } else {
+                        val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+                        val canvas = android.graphics.Canvas(bmp)
+                        drawable.setBounds(0, 0, size, size)
+                        drawable.draw(canvas)
+                        bmp
+                    }
+                    val stream = java.io.ByteArrayOutputStream()
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                    val bytes = stream.toByteArray()
+                    android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                } catch (_: Exception) {
+                    ""
+                }
+
+                mapOf(
+                    "packageName" to pkg,
+                    "appName" to label,
+                    "icon" to iconBase64
+                )
             }
             .sortedBy { it["appName"]?.lowercase() }
             .toList()

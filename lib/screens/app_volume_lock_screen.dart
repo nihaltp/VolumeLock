@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:volume_lock/models/app_state.dart';
 import 'package:volume_lock/services/volume_service.dart';
 
@@ -295,15 +294,26 @@ class _AppTile extends StatelessWidget {
           backgroundColor: entry.isTracked
               ? theme.colorScheme.primaryContainer
               : theme.colorScheme.surfaceContainerHighest,
-          child: Text(
-            entry.appName.isNotEmpty ? entry.appName[0].toUpperCase() : '?',
-            style: TextStyle(
-              color: entry.isTracked
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          child: entry.iconBytes != null && entry.iconBytes!.isNotEmpty
+              ? ClipOval(
+                  child: Image.memory(
+                    entry.iconBytes!,
+                    width: 32,
+                    height: 32,
+                    fit: BoxFit.cover,
+                  ),
+                )
+              : Text(
+                  entry.appName.isNotEmpty
+                      ? entry.appName[0].toUpperCase()
+                      : '?',
+                  style: TextStyle(
+                    color: entry.isTracked
+                        ? theme.colorScheme.onPrimaryContainer
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
         title: Text(
           entry.appName,
