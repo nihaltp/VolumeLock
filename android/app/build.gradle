@@ -118,6 +118,8 @@ android.applicationVariants.all { variant ->
             def baseVersionCode = variant.mergedFlavor.versionCode
             def abiSuffix = abiCodes[abi] ?: 0
             output.versionCodeOverride = baseVersionCode * 1000 + abiSuffix
+        } else {
+            output?.versionCodeOverride = variant.versionCode * 1000
         }
     }
 }
