@@ -1,0 +1,7 @@
+Volume Lock v1.2.0 (2026-06-07)
+
+Commits included in this release:
+- 9fd9ec3  fix: offload the tasks to background to fix the ui freeze
+- 7a7936b  fix: universal APK versionCode generation
+- ee69c6f  feat: add settings screen with logging
+- 91c63cc  Add ABI splits configuration for APK builds in Gradle files

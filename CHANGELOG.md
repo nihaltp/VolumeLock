@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0] - 2026-06-07
+
+### Fixed
+
+- 9fd9ec3  fix: offload the tasks to background to fix the ui freeze
+- 7a7936b  fix: universal APK versionCode generation
+
+### Added
+
+- ee69c6f  feat: add settings screen with logging
+
+### Other
+
+- 91c63cc  Add ABI splits configuration for APK builds in Gradle files
+
+# Changelog
+
 All notable changes to this project are documented in this file.
 
 
