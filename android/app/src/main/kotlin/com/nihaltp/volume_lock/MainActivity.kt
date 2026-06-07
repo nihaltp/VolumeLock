@@ -9,16 +9,21 @@ import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.text.TextUtils
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
 
     private val volumeChannel = "com.nihaltp.volume_lock/volume"
     private val appsChannel  = "com.nihaltp.volume_lock/apps"
+    private val executor = Executors.newSingleThreadExecutor()
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -139,7 +144,20 @@ class MainActivity : FlutterActivity() {
             appsChannel
         ).setMethodCallHandler { call, result ->
             when (call.method) {
-                "getInstalledApps" -> result.success(getInstalledApps())
+                "getInstalledApps" -> {
+                    executor.execute {
+                        try {
+                            val apps = getInstalledApps()
+                            mainHandler.post {
+                                result.success(apps)
+                            }
+                        } catch (e: Exception) {
+                            mainHandler.post {
+                                result.error("UNEXPECTED_ERROR", e.message, null)
+                            }
+                        }
+                    }
+                }
                 else               -> result.notImplemented()
             }
         }
