@@ -329,4 +329,111 @@ platform :android do
   lane :test do
     gradle(task: "test")
   end
+
+  desc "Capture screenshots of the application using Screengrab"
+  lane :screenshots do
+    # Resolve device ID first
+    properties = {}
+    [File.expand_path("local.properties", __dir__), File.expand_path("../local.properties", __dir__)].each do |properties_path|
+      next unless File.exist?(properties_path)
+
+      File.readlines(properties_path).each do |line|
+        next if line.strip.empty? || line.start_with?("#")
+        key, value = line.strip.split("=", 2)
+        properties[key] = value
+      end
+
+      break if properties["deviceId"] && !properties["deviceId"].strip.empty?
+    end
+
+    connected_devices = `adb devices`.scan(/^(\S+)\tdevice/).flatten
+    preferred_device_ids = [properties["deviceId"], ENV["SCREENGRAB_SPECIFIC_DEVICE"]].compact.map { |device| device.strip }.reject(&:empty?)
+
+    device_id = preferred_device_ids.find { |preferred_device_id| connected_devices.include?(preferred_device_id) }
+    if device_id.nil? && preferred_device_ids.any?
+      puts "Configured device is not connected; falling back to the first authorized adb device."
+    end
+
+    device_id ||= connected_devices.first
+
+    raise "No active Android device found!" if device_id.nil? || device_id.strip.empty?
+    puts "Using target device ID: #{device_id}"
+
+    # Build the APKs
+    build_debug
+    gradle(task: "assembleDebugAndroidTest")
+
+    # Uninstall existing packages to ensure a clean state
+    puts "Uninstalling previous installations..."
+    sh("adb -s #{device_id} uninstall #{get_application_id}.debug") rescue nil
+    sh("adb -s #{device_id} uninstall #{get_application_id}.debug.test") rescue nil
+
+    # Install both debug and test APKs
+    puts "Installing debug and test APKs..."
+    debug_apk = resolve_abi_apk(device_id)
+    android_test_apk = File.expand_path("../app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk", __dir__)
+    sh("adb -s #{device_id} install -r -t -g #{debug_apk}")
+    sh("adb -s #{device_id} install -r -t -g #{android_test_apk}")
+
+    # Silence app notifications while capturing screenshots so heads-up banners do not appear.
+    puts "Temporarily muting app notifications for screenshots..."
+    sh("adb -s #{device_id} shell appops set #{get_application_id}.debug POST_NOTIFICATION ignore") rescue nil
+    sh("adb -s #{device_id} shell appops set #{get_application_id}.debug.test POST_NOTIFICATION ignore") rescue nil
+
+    # Clean previous screenshots on the device
+    puts "Clearing previous screenshots on device..."
+    sh("adb -s #{device_id} shell rm -rf /sdcard/Android/data/#{get_application_id}.debug/files/app_screengrab") rescue nil
+
+    # Query original DND state (zen_mode)
+    original_zen_mode = `adb -s #{device_id} shell settings get global zen_mode`.strip rescue "0"
+    puts "Current system DND zen_mode is: #{original_zen_mode}"
+
+    # Enable Do Not Disturb (zen_mode = 1) to block heads-up notifications
+    puts "Enabling Do Not Disturb to suppress system notifications..."
+    sh("adb -s #{device_id} shell settings put global zen_mode 1") rescue nil
+
+    # Enable Demo Mode to suppress background status bar clutter
+    puts "Enabling SystemUI Demo Mode..."
+    sh("adb -s #{device_id} shell settings put global sysui_demo_allowed 1") rescue nil
+    sh("adb -s #{device_id} shell am broadcast -a com.android.systemui.demo -e command enter") rescue nil
+
+    begin
+      # Run the instrumented UI tests for locale en-US
+      puts "Running instrumented tests..."
+      sh("adb -s #{device_id} shell am instrument --no-window-animation -w -e class #{get_application_id}.ScreenshotTest -e testLocale en-US -e appendTimestamp false #{get_application_id}.debug.test/androidx.test.runner.AndroidJUnitRunner")
+
+      # Pull screenshots directly from the app's external files directory on the device
+      output_dir = "metadata/android/en-US/images/phoneScreenshots"
+      require 'fileutils'
+      FileUtils.mkdir_p(output_dir)
+      # Clear local screenshots dir first to ensure we don't have old ones
+      FileUtils.rm_rf(Dir.glob(File.join(output_dir, "*")))
+
+      puts "Pulling screenshots manually from external storage..."
+      sh("adb -s #{device_id} pull /sdcard/Android/data/#{get_application_id}.debug/files/app_screengrab/en-US/images/screenshots #{output_dir}")
+
+      # Move files out of the nested folder if ADB nested them
+      nested_dir = File.join(output_dir, "screenshots")
+      if Dir.exist?(nested_dir)
+        Dir.glob(File.join(nested_dir, "*")).each do |file|
+          FileUtils.mv(file, output_dir, force: true)
+        end
+        FileUtils.rm_rf(nested_dir)
+      end
+      puts "Successfully pulled all screenshots manually to #{output_dir}!"
+    ensure
+      # Exit Demo Mode
+      puts "Exiting SystemUI Demo Mode..."
+      sh("adb -s #{device_id} shell am broadcast -a com.android.systemui.demo -e command exit") rescue nil
+
+      # Restore original DND setting precisely
+      sh("adb -s #{device_id} shell appops set #{get_application_id}.debug POST_NOTIFICATION allow") rescue nil
+      sh("adb -s #{device_id} shell appops set #{get_application_id}.debug.test POST_NOTIFICATION allow") rescue nil
+      puts "Restoring original DND zen_mode state to: #{original_zen_mode}..."
+      sh("adb -s #{device_id} shell settings put global zen_mode #{original_zen_mode}") rescue nil
+    end
+
+    # Uninstall the app after screenshots are captured
+    sh("adb -s #{device_id} uninstall #{get_application_id}.debug.test") rescue nil
+  end
 end

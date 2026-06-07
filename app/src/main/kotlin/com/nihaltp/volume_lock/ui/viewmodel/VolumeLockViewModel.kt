@@ -53,14 +53,16 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val prefs: SharedPreferences = context.getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
 
+    internal var isTesting = false
+
     // UI States
-    private val _volumeLockEnabled = MutableStateFlow(false)
+    internal val _volumeLockEnabled = MutableStateFlow(false)
     val volumeLockEnabled: StateFlow<Boolean> = _volumeLockEnabled.asStateFlow()
 
-    private val _appVolumeLockEnabled = MutableStateFlow(false)
+    internal val _appVolumeLockEnabled = MutableStateFlow(false)
     val appVolumeLockEnabled: StateFlow<Boolean> = _appVolumeLockEnabled.asStateFlow()
 
-    private val _loggingEnabled = MutableStateFlow(false)
+    internal val _loggingEnabled = MutableStateFlow(false)
     val loggingEnabled: StateFlow<Boolean> = _loggingEnabled.asStateFlow()
 
     internal val _themeMode = MutableStateFlow("system")
@@ -72,22 +74,22 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     internal val _currentVolumes = MutableStateFlow(VolumeState())
     val currentVolumes: StateFlow<VolumeState> = _currentVolumes.asStateFlow()
 
-    private val _lockedVolumes = MutableStateFlow<VolumeState?>(null)
+    internal val _lockedVolumes = MutableStateFlow<VolumeState?>(null)
     val lockedVolumes: StateFlow<VolumeState?> = _lockedVolumes.asStateFlow()
 
-    private val _installedApps = MutableStateFlow<List<AppVolumeEntry>>(emptyList())
+    internal val _installedApps = MutableStateFlow<List<AppVolumeEntry>>(emptyList())
     val installedApps: StateFlow<List<AppVolumeEntry>> = _installedApps.asStateFlow()
 
-    private val _isLoadingApps = MutableStateFlow(false)
+    internal val _isLoadingApps = MutableStateFlow(false)
     val isLoadingApps: StateFlow<Boolean> = _isLoadingApps.asStateFlow()
 
-    private val _accessibilityGranted = MutableStateFlow(false)
+    internal val _accessibilityGranted = MutableStateFlow(false)
     val accessibilityGranted: StateFlow<Boolean> = _accessibilityGranted.asStateFlow()
 
-    private val _logs = MutableStateFlow<List<String>>(emptyList())
+    internal val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs.asStateFlow()
 
-    private val _isLoadingLogs = MutableStateFlow(false)
+    internal val _isLoadingLogs = MutableStateFlow(false)
     val isLoadingLogs: StateFlow<Boolean> = _isLoadingLogs.asStateFlow()
 
     init {
@@ -104,7 +106,9 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         // Start volume polling
         viewModelScope.launch {
             while (true) {
-                updateCurrentVolumes()
+                if (!isTesting) {
+                    updateCurrentVolumes()
+                }
                 delay(2000)
             }
         }
@@ -113,6 +117,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     // ─── Volume queries ────────────────────────────────────────────────────────
 
     fun updateCurrentVolumes() {
+        if (isTesting) return
         _currentVolumes.value = VolumeState(
             media = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC),
             mediaMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC),
@@ -170,6 +175,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun loadLogs() {
+        if (isTesting) return
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingLogs.value = true
             val rawLogs = getStringListFromPrefs("app_logs").sorted()
@@ -244,6 +250,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun checkAccessibilityPermission() {
+        if (isTesting) return
         val componentName = ComponentName(context, AppVolumeAccessibilityService::class.java)
         val enabledServices = Settings.Secure.getString(
             context.contentResolver,
@@ -266,6 +273,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     // ─── Installed apps & tracking ───────────────────────────────────────────
 
     fun loadInstalledApps() {
+        if (isTesting) return
         viewModelScope.launch {
             _isLoadingApps.value = true
             val apps = withContext(Dispatchers.IO) { getInstalledAppsFromSystem() }
