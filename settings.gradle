@@ -1,0 +1,2 @@
+rootProject.name = "Volume Lock"
+include ':app'

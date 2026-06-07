@@ -1,36 +1,33 @@
-# Miscellaneous
-*.class
-*.lock
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# Gradle files
+.gradle/
+build/
+app/build/
 
-# IntelliJ related
+# Local configuration file (sdk path, etc.)
+local.properties
+
+# Log files
+*.log
+
+# Keystores and signing files
+*.jks
+*.keystore
+key.properties
+
+# Android Studio / IntelliJ files
+.idea/
 *.iml
 *.ipr
 *.iws
-.idea/
+out/
+.navigation/
 
-# VS Code related
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+desktop.ini
+.DS_Store
+
+# VS Code
 .vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
-
-# Symbolication related
-app.*.symbols
