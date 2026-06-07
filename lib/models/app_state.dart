@@ -55,6 +55,7 @@ class AppState extends ChangeNotifier {
   }
   bool _volumeLockEnabled = false;
   bool _appVolumeLockEnabled = false;
+  bool _loggingEnabled = false;
 
   VolumeSnapshot? _lockedVolumes;
   final Map<String, AppVolumeEntry> _appEntries = {};
@@ -62,6 +63,7 @@ class AppState extends ChangeNotifier {
 
   bool get volumeLockEnabled => _volumeLockEnabled;
   bool get appVolumeLockEnabled => _appVolumeLockEnabled;
+  bool get loggingEnabled => _loggingEnabled;
   VolumeSnapshot? get lockedVolumes => _lockedVolumes;
   List<AppVolumeEntry> get installedApps => List.unmodifiable(_installedApps);
   Map<String, AppVolumeEntry> get appEntries => Map.unmodifiable(_appEntries);
@@ -72,6 +74,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _volumeLockEnabled = prefs.getBool('volume_lock_enabled') ?? false;
     _appVolumeLockEnabled = prefs.getBool('app_volume_lock_enabled') ?? false;
+    _loggingEnabled = prefs.getBool('logging_enabled') ?? false;
 
     final tracked = prefs.getStringList('tracked_apps') ?? [];
     for (final pkg in tracked) {
@@ -90,6 +93,7 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('volume_lock_enabled', _volumeLockEnabled);
     await prefs.setBool('app_volume_lock_enabled', _appVolumeLockEnabled);
+    await prefs.setBool('logging_enabled', _loggingEnabled);
 
     final tracked = _appEntries.values
         .where((e) => e.isTracked)
@@ -107,15 +111,58 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ─── Logging helpers ──────────────────────────────────────────────────────
+
+  Future<void> setLoggingEnabled(bool value) async {
+    _loggingEnabled = value;
+    await _savePrefs();
+    notifyListeners();
+    await logEvent('Logging ${value ? "enabled" : "disabled"}');
+  }
+
+  Future<void> logEvent(String message) async {
+    debugPrint('VolumeLock: $message');
+    if (!_loggingEnabled) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final timestamp = DateTime.now().toIso8601String().replaceAll('T', ' ').substring(0, 23);
+    final logLine = "$timestamp | $message";
+
+    final currentLogs = prefs.getStringList('app_logs') ?? [];
+    currentLogs.add(logLine);
+
+    if (currentLogs.length > 500) {
+      currentLogs.removeRange(0, currentLogs.length - 500);
+    }
+
+    await prefs.setStringList('app_logs', currentLogs);
+  }
+
+  Future<List<String>> getLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawLogs = prefs.getStringList('app_logs') ?? [];
+    rawLogs.sort();
+    return rawLogs;
+  }
+
+  Future<void> clearLogs() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('app_logs');
+    await logEvent('Logs cleared');
+    notifyListeners();
+  }
+
   // ─── Volume Lock ──────────────────────────────────────────────────────────
 
   Future<void> setVolumeLockEnabled(bool value) async {
     _volumeLockEnabled = value;
     if (value) {
       await VolumeService.startVolumeLockService();
+      await logEvent('Volume Lock service start requested');
     } else {
       await VolumeService.stopVolumeLockService();
       _lockedVolumes = null;
+      await logEvent('Volume Lock service stop requested');
     }
     await _savePrefs();
     notifyListeners();
@@ -139,6 +186,7 @@ class AppState extends ChangeNotifier {
       );
     } else {
       await VolumeService.stopAppVolumeLockService();
+      await logEvent('App Volume Lock service stopped');
     }
     await _savePrefs();
     notifyListeners();
@@ -176,6 +224,8 @@ class AppState extends ChangeNotifier {
     entry.isTracked = tracked;
     _appEntries[packageName] = entry;
 
+    await logEvent('Toggle app tracking: $packageName -> $tracked');
+
     if (_appVolumeLockEnabled) {
       final trackedPkgs = _appEntries.values
           .where((e) => e.isTracked)
@@ -200,6 +250,8 @@ class AppState extends ChangeNotifier {
       }
     }
 
+    await logEvent('Set app tracking for batch: tracked -> $tracked');
+
     if (_appVolumeLockEnabled) {
       final trackedPkgs = _appEntries.values
           .where((e) => e.isTracked)
@@ -215,6 +267,7 @@ class AppState extends ChangeNotifier {
   void updateAppVolume(String packageName, int volume) {
     if (_appEntries.containsKey(packageName)) {
       _appEntries[packageName]!.rememberedMediaVolume = volume;
+      logEvent('Update app volume: $packageName -> $volume');
       _savePrefs();
       notifyListeners();
     }

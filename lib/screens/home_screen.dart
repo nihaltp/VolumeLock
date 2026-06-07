@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'package:volume_lock/models/app_state.dart';
 import 'package:volume_lock/screens/app_volume_lock_screen.dart';
+import 'package:volume_lock/screens/settings_screen.dart';
 import 'package:volume_lock/screens/volume_lock_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -50,6 +51,19 @@ class HomeScreen extends StatelessWidget {
               context,
               MaterialPageRoute(
                 builder: (_) => const AppVolumeLockScreen(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _FeatureCard(
+            icon: Icons.settings,
+            title: 'Settings',
+            subtitle: 'Configure app preferences.',
+            isEnabled: state.loggingEnabled,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const SettingsScreen(),
               ),
             ),
           ),
