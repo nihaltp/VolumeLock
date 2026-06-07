@@ -31,3 +31,6 @@ desktop.ini
 
 # VS Code
 .vscode/
+
+# Fastlane files
+fastlane/report.xml
