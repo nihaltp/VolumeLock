@@ -63,7 +63,13 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     private val _loggingEnabled = MutableStateFlow(false)
     val loggingEnabled: StateFlow<Boolean> = _loggingEnabled.asStateFlow()
 
-    private val _currentVolumes = MutableStateFlow(VolumeState())
+    internal val _themeMode = MutableStateFlow("system")
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
+    internal val _materialYouEnabled = MutableStateFlow(true)
+    val materialYouEnabled: StateFlow<Boolean> = _materialYouEnabled.asStateFlow()
+
+    internal val _currentVolumes = MutableStateFlow(VolumeState())
     val currentVolumes: StateFlow<VolumeState> = _currentVolumes.asStateFlow()
 
     private val _lockedVolumes = MutableStateFlow<VolumeState?>(null)
@@ -89,6 +95,8 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         _volumeLockEnabled.value = prefs.getBoolean("volume_lock_enabled", false)
         _appVolumeLockEnabled.value = prefs.getBoolean("app_volume_lock_enabled", false)
         _loggingEnabled.value = prefs.getBoolean("logging_enabled", false)
+        _themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
+        _materialYouEnabled.value = prefs.getBoolean("material_you_enabled", true)
 
         updateCurrentVolumes()
         checkAccessibilityPermission()
@@ -115,6 +123,20 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
             alarm = audioManager.getStreamVolume(AudioManager.STREAM_ALARM),
             alarmMax = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
         )
+    }
+
+    // ─── Theme helper ────────────────────────────────────────────────────────
+
+    fun setThemeMode(mode: String) {
+        _themeMode.value = mode
+        prefs.edit().putString("theme_mode", mode).apply()
+        logEvent("Theme changed to $mode")
+    }
+
+    fun setMaterialYouEnabled(enabled: Boolean) {
+        _materialYouEnabled.value = enabled
+        prefs.edit().putBoolean("material_you_enabled", enabled).apply()
+        logEvent("Material You toggled: $enabled")
     }
 
     // ─── Logging helpers ──────────────────────────────────────────────────────

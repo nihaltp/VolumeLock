@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-// Premium Deep Indigo & Slate Palette
+// Premium Light Theme Palette (Deep Indigo & Slate)
 val IndigoPrimary = Color(0xFF3A4FCD)
 val IndigoOnPrimary = Color(0xFFFFFFFF)
 val IndigoPrimaryContainer = Color(0xFFDCE1FF)
@@ -22,13 +22,6 @@ val SlateOnSecondary = Color(0xFFFFFFFF)
 val SlateSecondaryContainer = Color(0xFFE2E8F0)
 val SlateOnSecondaryContainer = Color(0xFF0F172A)
 
-val DarkBackground = Color(0xFF0F172A)
-val DarkSurface = Color(0xFF1E293B)
-val DarkOnBackground = Color(0xFFF1F5F9)
-val DarkOnSurface = Color(0xFFF1F5F9)
-val DarkSurfaceVariant = Color(0xFF334155)
-val DarkOnSurfaceVariant = Color(0xFFCBD5E1)
-
 val LightBackground = Color(0xFFF8FAFC)
 val LightSurface = Color(0xFFFFFFFF)
 val LightOnBackground = Color(0xFF0F172A)
@@ -36,22 +29,23 @@ val LightOnSurface = Color(0xFF0F172A)
 val LightSurfaceVariant = Color(0xFFE2E8F0)
 val LightOnSurfaceVariant = Color(0xFF475569)
 
-private val DarkColorScheme = darkColorScheme(
-    primary = IndigoPrimary,
-    onPrimary = IndigoOnPrimary,
-    primaryContainer = Color(0xFF1E297D),
-    onPrimaryContainer = IndigoPrimaryContainer,
-    secondary = Color(0xFF94A3B8),
-    onSecondary = Color(0xFF0F172A),
-    secondaryContainer = Color(0xFF334155),
-    onSecondaryContainer = Color(0xFFE2E8F0),
-    background = DarkBackground,
-    surface = DarkSurface,
-    onBackground = DarkOnBackground,
-    onSurface = DarkOnSurface,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = DarkOnSurfaceVariant
-)
+// Premium Dark Theme Palette (Cosmic Purple/Teal)
+val DarkPrimary = Color(0xFF9D4EDD) // Cosmic violet
+val DarkOnPrimary = Color(0xFFFFFFFF)
+val DarkPrimaryContainer = Color(0xFF240046)
+val DarkOnPrimaryContainer = Color(0xFFE0AAFF)
+
+val DarkSecondary = Color(0xFF00B4D8) // Electric cyan
+val DarkOnSecondary = Color(0xFF03045E)
+val DarkSecondaryContainer = Color(0xFF0077B6)
+val DarkOnSecondaryContainer = Color(0xFFCAF0F8)
+
+val DarkBackground = Color(0xFF0B0616) // Space black/purple
+val DarkSurface = Color(0xFF160D2C)
+val DarkOnBackground = Color(0xFFF3E8FF)
+val DarkOnSurface = Color(0xFFF3E8FF)
+val DarkSurfaceVariant = Color(0xFF241444)
+val DarkOnSurfaceVariant = Color(0xFFD8B4FE)
 
 private val LightColorScheme = lightColorScheme(
     primary = IndigoPrimary,
@@ -68,6 +62,23 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LightOnSurface,
     surfaceVariant = LightSurfaceVariant,
     onSurfaceVariant = LightOnSurfaceVariant
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = DarkPrimary,
+    onPrimary = DarkOnPrimary,
+    primaryContainer = DarkPrimaryContainer,
+    onPrimaryContainer = DarkOnPrimaryContainer,
+    secondary = DarkSecondary,
+    onSecondary = DarkOnSecondary,
+    secondaryContainer = DarkSecondaryContainer,
+    onSecondaryContainer = DarkOnSecondaryContainer,
+    background = DarkBackground,
+    surface = DarkSurface,
+    onBackground = DarkOnBackground,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant
 )
 
 @Composable

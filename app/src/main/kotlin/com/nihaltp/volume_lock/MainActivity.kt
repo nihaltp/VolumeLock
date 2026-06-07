@@ -12,6 +12,9 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,16 +29,31 @@ import com.nihaltp.volume_lock.ui.viewmodel.VolumeLockViewModel
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: VolumeLockViewModel by viewModels()
+    internal val viewModel: VolumeLockViewModel by viewModels()
+
+    internal var forceDarkTheme by androidx.compose.runtime.mutableStateOf<Boolean?>(null)
+    internal var forceDisableDynamicColor by androidx.compose.runtime.mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         createNotificationChannels()
         requestNotificationPermission()
 
         setContent {
-            VolumeLockTheme {
+            val themeMode by viewModel.themeMode.collectAsState()
+            val materialYouEnabled by viewModel.materialYouEnabled.collectAsState()
+
+            val isDarkTheme = when (themeMode) {
+                "dark" -> true
+                "light" -> false
+                else -> androidx.compose.foundation.isSystemInDarkTheme()
+            }
+
+            VolumeLockTheme(
+                darkTheme = forceDarkTheme ?: isDarkTheme,
+                dynamicColor = if (forceDisableDynamicColor) false else materialYouEnabled
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
