@@ -9,9 +9,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
+import android.database.ContentObserver
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -46,10 +51,25 @@ class AppVolumeLockService : Service() {
 
     private lateinit var audioManager: AudioManager
 
-    // packageName → remembered media volume
-    private val rememberedVolumes = mutableMapOf<String, Int>()
     private val trackedPackages = mutableSetOf<String>()
     private var currentForegroundApp: String? = null
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var lastRestoredVolume = -1
+
+    private val volumeObserver = object : ContentObserver(handler) {
+        override fun onChange(selfChange: Boolean, uri: Uri?) {
+            val foreground = currentForegroundApp ?: return
+            if (!trackedPackages.contains(foreground)) return
+
+            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            if (currentVolume != lastRestoredVolume) {
+                logEvent("Volume changed explicitly by user: $lastRestoredVolume -> $currentVolume (Foreground: $foreground)")
+                lastRestoredVolume = currentVolume
+                saveVolumeForApp(foreground, currentVolume)
+            }
+        }
+    }
 
     // ── Helper methods for SharedPreferences & Logging ─────────────────────
 
@@ -95,29 +115,73 @@ class AppVolumeLockService : Service() {
         }
     }
 
-    private fun getRememberedVolume(packageName: String): Int? {
+    private fun getVolumeConfig(packageName: String): VolumeConfig {
         val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
-        val key = "app_vol_$packageName"
-        if (!sharedPrefs.contains(key)) return null
-        return try {
-            sharedPrefs.getInt(key, -1).takeIf { it >= 0 }
-        } catch (e: ClassCastException) {
-            sharedPrefs.getLong(key, -1L).toInt().takeIf { it >= 0 }
+        val jsonStr = sharedPrefs.getString("app_volume_config_$packageName", null)
+        if (jsonStr != null) {
+            try {
+                val json = org.json.JSONObject(jsonStr)
+                val defaultVolume = json.optInt("defaultVolume", 8)
+                val pairingsJson = json.optJSONObject("pairings")
+                val pairings = mutableMapOf<String, Int>()
+                if (pairingsJson != null) {
+                    val keys = pairingsJson.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        pairings[key] = pairingsJson.getInt(key)
+                    }
+                }
+                return VolumeConfig(defaultVolume, pairings)
+            } catch (e: Exception) {
+                android.util.Log.e("VolumeLock", "Error parsing VolumeConfig: ${e.message}")
+            }
         }
+        return VolumeConfig(8, emptyMap())
+    }
+
+    private fun saveVolumeConfig(packageName: String, config: VolumeConfig) {
+        try {
+            val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
+            val json = org.json.JSONObject()
+            json.put("defaultVolume", config.defaultVolume)
+            val pairingsJson = org.json.JSONObject()
+            for ((pkg, vol) in config.pairings) {
+                pairingsJson.put(pkg, vol)
+            }
+            json.put("pairings", pairingsJson)
+            sharedPrefs.edit().putString("app_volume_config_$packageName", json.toString()).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeLock", "Error saving VolumeConfig: ${e.message}")
+        }
+    }
+
+    private fun saveVolumeForApp(foreground: String, volume: Int) {
+        val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
+        val bgEnabled = sharedPrefs.getBoolean("background_aware_enabled", false)
+        val currentConfig = getVolumeConfig(foreground)
+
+        val newConfig = if (bgEnabled) {
+            val bgPlayer = MediaSessionHelper.getActiveBackgroundPlayer(this, foreground)
+            if (bgPlayer != null && bgPlayer != foreground) {
+                val newPairings = currentConfig.pairings.toMutableMap()
+                newPairings[bgPlayer] = volume
+                currentConfig.copy(pairings = newPairings)
+            } else {
+                currentConfig.copy(defaultVolume = volume)
+            }
+        } else {
+            currentConfig.copy(defaultVolume = volume)
+        }
+
+        saveVolumeConfig(foreground, newConfig)
+        logEvent("Saved VolumeConfig for $foreground: $newConfig")
     }
 
     private fun loadTrackedPackagesFromPrefs() {
         val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
         val trackedList = getStringListFromPrefs(sharedPrefs, "tracked_apps")
         trackedPackages.clear()
-        rememberedVolumes.clear()
         trackedPackages.addAll(trackedList)
-        for (pkg in trackedList) {
-            val vol = getRememberedVolume(pkg)
-            if (vol != null) {
-                rememberedVolumes[pkg] = vol
-            }
-        }
         logEvent("Loaded ${trackedPackages.size} tracked packages from prefs: $trackedPackages")
     }
 
@@ -136,17 +200,6 @@ class AppVolumeLockService : Service() {
                     logEvent("ACTION_UPDATE_PACKAGES: New list count: ${pkgs.size}")
                     trackedPackages.clear()
                     trackedPackages.addAll(pkgs)
-                    // Sync rememberedVolumes with SharedPreferences for newly tracked packages
-                    for (pkg in trackedPackages) {
-                        if (!rememberedVolumes.containsKey(pkg)) {
-                            val vol = getRememberedVolume(pkg)
-                            if (vol != null) {
-                                rememberedVolumes[pkg] = vol
-                            }
-                        }
-                    }
-                    // Clean up packages that are no longer tracked
-                    rememberedVolumes.keys.retainAll(trackedPackages)
                 }
             }
         }
@@ -159,6 +212,12 @@ class AppVolumeLockService : Service() {
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         loadTrackedPackagesFromPrefs()
         logEvent("Service onCreate")
+
+        contentResolver.registerContentObserver(
+            Settings.System.CONTENT_URI,
+            true,
+            volumeObserver
+        )
 
         val filter = IntentFilter().apply {
             addAction(ACTION_APP_CHANGED)
@@ -183,12 +242,6 @@ class AppVolumeLockService : Service() {
             logEvent("onStartCommand: Tracked packages received: ${pkgs.size}")
             trackedPackages.clear()
             trackedPackages.addAll(pkgs)
-            for (pkg in pkgs) {
-                val vol = getRememberedVolume(pkg)
-                if (vol != null) {
-                    rememberedVolumes[pkg] = vol
-                }
-            }
         } else {
             logEvent("onStartCommand: Intent is null, loading packages from prefs")
             loadTrackedPackagesFromPrefs()
@@ -201,6 +254,7 @@ class AppVolumeLockService : Service() {
         super.onDestroy()
         logEvent("Service onDestroy")
         unregisterReceiver(appChangeReceiver)
+        contentResolver.unregisterContentObserver(volumeObserver)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -211,27 +265,30 @@ class AppVolumeLockService : Service() {
         val previous = currentForegroundApp
         logEvent("onAppChanged: $previous -> $newPackageName")
 
-        // Save volume of the app that just moved to background.
-        if (previous != null && trackedPackages.contains(previous)) {
-            val volume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            rememberedVolumes[previous] = volume
-            val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
-            sharedPrefs.edit().putInt("app_vol_$previous", volume).apply()
-            logEvent("Saved volume for $previous: $volume")
-        }
-
         currentForegroundApp = newPackageName
 
         // Restore volume for the newly-focused app, if we have a memory for it.
         if (trackedPackages.contains(newPackageName)) {
-            val savedVolume = rememberedVolumes[newPackageName] ?: getRememberedVolume(newPackageName)
-            if (savedVolume != null) {
-                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, savedVolume, 0)
-                rememberedVolumes[newPackageName] = savedVolume
-                logEvent("Restored volume for $newPackageName: $savedVolume")
+            val sharedPrefs = getSharedPreferences("volume_lock_prefs", Context.MODE_PRIVATE)
+            val bgEnabled = sharedPrefs.getBoolean("background_aware_enabled", false)
+            val config = getVolumeConfig(newPackageName)
+
+            val volumeToRestore = if (bgEnabled) {
+                val bgPlayer = MediaSessionHelper.getActiveBackgroundPlayer(this, newPackageName)
+                if (bgPlayer != null && bgPlayer != newPackageName && config.pairings.containsKey(bgPlayer)) {
+                    logEvent("Found background pairing volume for $newPackageName with bg $bgPlayer")
+                    config.pairings[bgPlayer] ?: config.defaultVolume
+                } else {
+                    logEvent("No background pairing or same app, restoring default volume for $newPackageName")
+                    config.defaultVolume
+                }
             } else {
-                logEvent("No saved volume found for tracked app $newPackageName")
+                config.defaultVolume
             }
+
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeToRestore, 0)
+            lastRestoredVolume = volumeToRestore
+            logEvent("Restored volume for $newPackageName: $volumeToRestore")
         } else {
             logEvent("New app $newPackageName is not tracked")
         }

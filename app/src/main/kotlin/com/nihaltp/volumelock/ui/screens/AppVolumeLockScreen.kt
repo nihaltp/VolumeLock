@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WarningAmber
@@ -46,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,9 +62,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.nihaltp.volumelock.ui.viewmodel.AppVolumeEntry
 import com.nihaltp.volumelock.ui.viewmodel.VolumeLockViewModel
 import kotlinx.coroutines.Dispatchers
@@ -81,10 +87,22 @@ fun AppVolumeLockScreen(
 
     var search by remember { mutableStateOf("") }
     var showPermissionDialog by remember { mutableStateOf(false) }
+    var activeDetailsApp by remember { mutableStateOf<AppVolumeEntry?>(null) }
 
-    // Check accessibility on launch and resume
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.checkAccessibilityPermission()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     LaunchedEffect(Unit) {
-        viewModel.checkAccessibilityPermission()
         viewModel.loadInstalledApps()
     }
 
@@ -353,10 +371,21 @@ fun AppVolumeLockScreen(
                             entry = appEntry,
                             onToggle = { isTracked ->
                                 viewModel.toggleAppTracking(appEntry.packageName, isTracked)
+                            },
+                            onClick = {
+                                activeDetailsApp = appEntry
                             }
                         )
                     }
                 }
+            }
+
+            activeDetailsApp?.let { app ->
+                AppVolumeDetailsDialog(
+                    app = app,
+                    viewModel = viewModel,
+                    onDismiss = { activeDetailsApp = null }
+                )
             }
         }
     }
@@ -365,13 +394,14 @@ fun AppVolumeLockScreen(
 @Composable
 fun AppTile(
     entry: AppVolumeEntry,
-    onToggle: (Boolean) -> Unit
+    onToggle: (Boolean) -> Unit,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .clickable { onToggle(!entry.isTracked) },
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -417,7 +447,7 @@ fun AppTile(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (entry.rememberedMediaVolume != null) {
-                        "Remembered volume: ${entry.rememberedMediaVolume}"
+                        "Default volume: ${entry.rememberedMediaVolume}"
                     } else {
                         "No remembered volume yet"
                     },
@@ -500,5 +530,177 @@ fun OutlinedTextField(
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
         modifier = modifier
+    )
+}
+
+@Composable
+fun AppVolumeDetailsDialog(
+    app: AppVolumeEntry,
+    viewModel: VolumeLockViewModel,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    val pm = context.packageManager
+    val config = remember(app.packageName) { viewModel.getVolumeConfig(app.packageName) }
+
+    var defaultVol by remember(config) { mutableStateOf(config.defaultVolume) }
+    var pairings by remember(config) { mutableStateOf(config.pairings) }
+
+    val pairingAppNames = remember(pairings) {
+        pairings.keys.associateWith { pkg ->
+            try {
+                val appInfo = pm.getApplicationInfo(pkg, 0)
+                pm.getApplicationLabel(appInfo).toString()
+            } catch (e: Exception) {
+                pkg
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AppIcon(
+                        packageName = app.packageName,
+                        fallbackChar = if (app.appName.isNotEmpty()) app.appName[0].uppercaseChar() else '?'
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(text = app.appName, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = app.packageName, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Default Volume",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.material3.Slider(
+                        value = defaultVol.toFloat(),
+                        onValueChange = {
+                            defaultVol = it.toInt()
+                            viewModel.updateVolumeForAppPair(app.packageName, null, it.toInt())
+                        },
+                        valueRange = 0f..15f,
+                        steps = 14,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "$defaultVol", fontWeight = FontWeight.Medium)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Background Player Volumes",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (pairings.isEmpty()) {
+                    Text(
+                        text = "No background-specific volumes recorded yet.\n\nTo save one automatically: adjust the media volume while this app is in the foreground and a background music player is active.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 16.sp
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.heightIn(max = 200.dp)) {
+                        items(pairings.keys.toList()) { bgPackage ->
+                            val bgVolume = pairings[bgPackage] ?: 8
+                            val bgAppName = pairingAppNames[bgPackage] ?: bgPackage
+
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Column(modifier = Modifier.padding(8.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AppIcon(
+                                                packageName = bgPackage,
+                                                fallbackChar = if (bgAppName.isNotEmpty()) bgAppName[0].uppercaseChar() else '?'
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = bgAppName,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                        IconButton(
+                                            onClick = {
+                                                viewModel.deleteVolumeForAppPair(app.packageName, bgPackage)
+                                                pairings = pairings.toMutableMap().apply { remove(bgPackage) }
+                                            },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Pairing",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        androidx.compose.material3.Slider(
+                                            value = bgVolume.toFloat(),
+                                            onValueChange = {
+                                                val newVol = it.toInt()
+                                                pairings = pairings.toMutableMap().apply { put(bgPackage, newVol) }
+                                                viewModel.updateVolumeForAppPair(app.packageName, bgPackage, newVol)
+                                            },
+                                            valueRange = 0f..15f,
+                                            steps = 14,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = "$bgVolume", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
     )
 }

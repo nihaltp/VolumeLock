@@ -16,6 +16,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nihaltp.volumelock.AppVolumeAccessibilityService
 import com.nihaltp.volumelock.AppVolumeLockService
+import com.nihaltp.volumelock.MediaSessionHelper
+import com.nihaltp.volumelock.VolumeConfig
 import com.nihaltp.volumelock.VolumeLockService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -64,6 +66,9 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     internal val _appVolumeLockEnabled = MutableStateFlow(false)
     val appVolumeLockEnabled: StateFlow<Boolean> = _appVolumeLockEnabled.asStateFlow()
 
+    internal val _backgroundAwareEnabled = MutableStateFlow(false)
+    val backgroundAwareEnabled: StateFlow<Boolean> = _backgroundAwareEnabled.asStateFlow()
+
     internal val _loggingEnabled = MutableStateFlow(false)
     val loggingEnabled: StateFlow<Boolean> = _loggingEnabled.asStateFlow()
 
@@ -88,6 +93,9 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     internal val _accessibilityGranted = MutableStateFlow(false)
     val accessibilityGranted: StateFlow<Boolean> = _accessibilityGranted.asStateFlow()
 
+    internal val _notificationAccessGranted = MutableStateFlow(false)
+    val notificationAccessGranted: StateFlow<Boolean> = _notificationAccessGranted.asStateFlow()
+
     internal val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs.asStateFlow()
 
@@ -98,6 +106,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         // Load initial state
         _volumeLockEnabled.value = prefs.getBoolean("volume_lock_enabled", false)
         _appVolumeLockEnabled.value = prefs.getBoolean("app_volume_lock_enabled", false)
+        _backgroundAwareEnabled.value = prefs.getBoolean("background_aware_enabled", false)
         _loggingEnabled.value = prefs.getBoolean("logging_enabled", false)
         _themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
         _materialYouEnabled.value = prefs.getBoolean("material_you_enabled", true)
@@ -111,6 +120,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
 
         updateCurrentVolumes()
         checkAccessibilityPermission()
+        checkNotificationAccessPermission()
 
         // Start volume polling
         viewModelScope.launch {
@@ -154,6 +164,17 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // ─── Logging helpers ──────────────────────────────────────────────────────
+
+    fun setBackgroundAwareEnabled(enabled: Boolean) {
+        _backgroundAwareEnabled.value = enabled
+        prefs.edit().putBoolean("background_aware_enabled", enabled).apply()
+        logEvent("Background Aware App Volume toggled: $enabled")
+    }
+
+    fun checkNotificationAccessPermission() {
+        if (isTesting) return
+        _notificationAccessGranted.value = MediaSessionHelper.isNotificationAccessGranted(context)
+    }
 
     fun setLoggingEnabled(value: Boolean) {
         _loggingEnabled.value = value
@@ -348,7 +369,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
                         packageName = pkg,
                         appName = label,
                         isTracked = trackedSet.contains(pkg),
-                        rememberedMediaVolume = getRememberedVolume(pkg)
+                        rememberedMediaVolume = getVolumeConfig(pkg).defaultVolume
                     )
 
                     resolvedPackages.add(pkg)
@@ -452,19 +473,83 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun updateAppVolume(packageName: String, volume: Int) {
-        viewModelScope.launch(Dispatchers.IO) {
-            prefs.edit().putInt("app_vol_$packageName", volume).apply()
-            logEvent("Update app volume: $packageName -> $volume")
+        updateVolumeForAppPair(packageName, null, volume)
+    }
 
-            val updatedList = _installedApps.value.map {
-                if (it.packageName == packageName) {
-                    it.copy(rememberedMediaVolume = volume)
-                } else {
-                    it
+    fun getVolumeConfig(foregroundPackage: String): VolumeConfig {
+        val jsonStr = prefs.getString("app_volume_config_$foregroundPackage", null)
+        if (jsonStr != null) {
+            try {
+                val json = org.json.JSONObject(jsonStr)
+                val defaultVolume = json.optInt("defaultVolume", 8)
+                val pairingsJson = json.optJSONObject("pairings")
+                val pairings = mutableMapOf<String, Int>()
+                if (pairingsJson != null) {
+                    val keys = pairingsJson.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        pairings[key] = pairingsJson.getInt(key)
+                    }
                 }
+                return VolumeConfig(defaultVolume, pairings)
+            } catch (e: Exception) {
+                android.util.Log.e("VolumeLock", "Error parsing VolumeConfig: ${e.message}")
             }
-            _installedApps.value = updatedList
-            saveInstalledAppsToPrefs(updatedList)
+        }
+        return VolumeConfig(8, emptyMap())
+    }
+
+    fun saveVolumeConfig(foregroundPackage: String, config: VolumeConfig) {
+        try {
+            val json = org.json.JSONObject()
+            json.put("defaultVolume", config.defaultVolume)
+            val pairingsJson = org.json.JSONObject()
+            for ((pkg, vol) in config.pairings) {
+                pairingsJson.put(pkg, vol)
+            }
+            json.put("pairings", pairingsJson)
+            prefs.edit().putString("app_volume_config_$foregroundPackage", json.toString()).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeLock", "Error saving VolumeConfig: ${e.message}")
+        }
+    }
+
+    fun updateVolumeForAppPair(foregroundPackage: String, backgroundPackage: String?, volume: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentConfig = getVolumeConfig(foregroundPackage)
+            val newConfig = if (backgroundPackage == null || backgroundPackage == foregroundPackage) {
+                currentConfig.copy(defaultVolume = volume)
+            } else {
+                val newPairings = currentConfig.pairings.toMutableMap()
+                newPairings[backgroundPackage] = volume
+                currentConfig.copy(pairings = newPairings)
+            }
+            saveVolumeConfig(foregroundPackage, newConfig)
+            logEvent("Updated pair volume: fg=$foregroundPackage, bg=$backgroundPackage, vol=$volume")
+
+            // If we changed defaultVolume, we also need to update _installedApps list
+            if (backgroundPackage == null || backgroundPackage == foregroundPackage) {
+                val updatedList = _installedApps.value.map {
+                    if (it.packageName == foregroundPackage) {
+                        it.copy(rememberedMediaVolume = volume)
+                    } else {
+                        it
+                    }
+                }
+                _installedApps.value = updatedList
+                saveInstalledAppsToPrefs(updatedList)
+            }
+        }
+    }
+
+    fun deleteVolumeForAppPair(foregroundPackage: String, backgroundPackage: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentConfig = getVolumeConfig(foregroundPackage)
+            val newPairings = currentConfig.pairings.toMutableMap()
+            newPairings.remove(backgroundPackage)
+            val newConfig = currentConfig.copy(pairings = newPairings)
+            saveVolumeConfig(foregroundPackage, newConfig)
+            logEvent("Deleted pair volume: fg=$foregroundPackage, bg=$backgroundPackage")
         }
     }
 
@@ -532,12 +617,5 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
             jsonArray.put(item)
         }
         prefs.edit().putString(key, jsonArray.toString()).apply()
-    }
-
-    private fun getRememberedVolume(packageName: String): Int? {
-        val key = "app_vol_$packageName"
-        if (!prefs.contains(key)) return null
-        val vol = prefs.getInt(key, -1)
-        return if (vol >= 0) vol else null
     }
 }
