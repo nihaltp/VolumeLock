@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -99,6 +100,13 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         _loggingEnabled.value = prefs.getBoolean("logging_enabled", false)
         _themeMode.value = prefs.getString("theme_mode", "system") ?: "system"
         _materialYouEnabled.value = prefs.getBoolean("material_you_enabled", true)
+
+        if (!isTesting) {
+            val cachedApps = getInstalledAppsFromPrefs()
+            if (cachedApps.isNotEmpty()) {
+                _installedApps.value = cachedApps
+            }
+        }
 
         updateCurrentVolumes()
         checkAccessibilityPermission()
@@ -279,6 +287,9 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
             val apps = withContext(Dispatchers.IO) { getInstalledAppsFromSystem() }
             _installedApps.value = apps
             _isLoadingApps.value = false
+            withContext(Dispatchers.IO) {
+                saveInstalledAppsToPrefs(apps)
+            }
         }
     }
 
@@ -314,6 +325,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             _installedApps.value = updatedList
+            saveInstalledAppsToPrefs(updatedList)
         }
     }
 
@@ -349,6 +361,7 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             _installedApps.value = updatedList
+            saveInstalledAppsToPrefs(updatedList)
         }
     }
 
@@ -365,10 +378,49 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
                 }
             }
             _installedApps.value = updatedList
+            saveInstalledAppsToPrefs(updatedList)
         }
     }
 
     // ─── Helper methods for SharedPreferences & App Queries ──────────────────
+
+    private fun saveInstalledAppsToPrefs(apps: List<AppVolumeEntry>) {
+        val jsonArray = JSONArray()
+        for (app in apps) {
+            val jsonObject = JSONObject()
+            jsonObject.put("packageName", app.packageName)
+            jsonObject.put("appName", app.appName)
+            jsonObject.put("isTracked", app.isTracked)
+            if (app.rememberedMediaVolume != null) {
+                jsonObject.put("rememberedMediaVolume", app.rememberedMediaVolume)
+            }
+            jsonArray.put(jsonObject)
+        }
+        prefs.edit().putString("cached_installed_apps", jsonArray.toString()).apply()
+    }
+
+    private fun getInstalledAppsFromPrefs(): List<AppVolumeEntry> {
+        val list = mutableListOf<AppVolumeEntry>()
+        val jsonStr = prefs.getString("cached_installed_apps", null) ?: return list
+        try {
+            val jsonArray = JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                val jsonObject = jsonArray.getJSONObject(i)
+                val packageName = jsonObject.getString("packageName")
+                val appName = jsonObject.getString("appName")
+                val isTracked = jsonObject.getBoolean("isTracked")
+                val rememberedMediaVolume = if (jsonObject.has("rememberedMediaVolume")) {
+                    jsonObject.getInt("rememberedMediaVolume")
+                } else {
+                    null
+                }
+                list.add(AppVolumeEntry(packageName, appName, isTracked, rememberedMediaVolume))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("VolumeLock", "Failed to parse cached apps JSON: ${e.message}")
+        }
+        return list
+    }
 
     private fun getTrackedPackages(): List<String> {
         return getStringListFromPrefs("tracked_apps")

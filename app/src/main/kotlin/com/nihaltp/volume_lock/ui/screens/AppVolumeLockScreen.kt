@@ -56,7 +56,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
@@ -86,9 +85,7 @@ fun AppVolumeLockScreen(
     // Check accessibility on launch and resume
     LaunchedEffect(Unit) {
         viewModel.checkAccessibilityPermission()
-        if (apps.isEmpty()) {
-            viewModel.loadInstalledApps()
-        }
+        viewModel.loadInstalledApps()
     }
 
     val handleToggle: (Boolean) -> Unit = { isChecked ->
@@ -127,8 +124,8 @@ fun AppVolumeLockScreen(
     val filteredApps = remember(apps, search) {
         apps.filter {
             search.isEmpty() ||
-                    it.appName.contains(search, ignoreCase = true) ||
-                    it.packageName.contains(search, ignoreCase = true)
+                it.appName.contains(search, ignoreCase = true) ||
+                it.packageName.contains(search, ignoreCase = true)
         }.sortedWith { a, b ->
             if (a.isTracked != b.isTracked) {
                 if (a.isTracked) -1 else 1
@@ -197,10 +194,11 @@ fun AppVolumeLockScreen(
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = if (enabled)
+                                text = if (enabled) {
                                     "Active — media volume is restored when you return to a tracked app."
-                                else
-                                    "Remembers media volume per app and restores it on each return.",
+                                } else {
+                                    "Remembers media volume per app and restores it on each return."
+                                },
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 lineHeight = 16.sp
@@ -391,10 +389,11 @@ fun AppTile(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(
-                        if (entry.isTracked)
+                        if (entry.isTracked) {
                             MaterialTheme.colorScheme.primaryContainer
-                        else
+                        } else {
                             MaterialTheme.colorScheme.surfaceVariant
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -417,10 +416,11 @@ fun AppTile(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = if (entry.rememberedMediaVolume != null)
+                    text = if (entry.rememberedMediaVolume != null) {
                         "Remembered volume: ${entry.rememberedMediaVolume}"
-                    else
-                        "No remembered volume yet",
+                    } else {
+                        "No remembered volume yet"
+                    },
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
