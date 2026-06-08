@@ -73,18 +73,6 @@ class ScreenshotTest {
         )
         viewModel._installedApps.value = fakeApps
 
-        // Seed logs list
-        val fakeLogs = listOf(
-            "2026-06-07 10:15:30.123 | ViewModel: Volume Lock service started",
-            "2026-06-07 10:15:35.456 | ViewModel: Current volumes saved: Media 10, Ring 6, Notification 4, Alarm 5",
-            "2026-06-07 11:20:02.789 | ViewModel: Screen off detected",
-            "2026-06-07 11:20:05.111 | ViewModel: Volume changed while screen off: Media 10 -> 12. Restoring to 10.",
-            "2026-06-07 11:22:00.002 | ViewModel: Screen on detected",
-            "2026-06-07 12:05:12.345 | ViewModel: App switched: com.spotify.music in foreground",
-            "2026-06-07 12:05:12.567 | ViewModel: App Volume Lock: Restored Spotify volume to 8"
-        )
-        viewModel._logs.value = fakeLogs
-
         // Seed volumes state
         viewModel._currentVolumes.value = VolumeState(media = 10, ring = 6, notification = 4, alarm = 5)
         viewModel._lockedVolumes.value = VolumeState(media = 8, ring = 6, notification = 4, alarm = 5)
@@ -133,17 +121,6 @@ class ScreenshotTest {
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
-            // 5. Diagnostics Logs Screen - Light
-            composeTestRule.onNodeWithText("View Diagnostics Logs").performClick()
-            composeTestRule.waitForIdle()
-            Thread.sleep(1200)
-            Screengrab.screenshot(screenshotCounter.toString())
-            screenshotCounter++
-
-            // Go back to Settings
-            composeTestRule.onNodeWithContentDescription("Back").performClick()
-            composeTestRule.waitForIdle()
-
             // Go back to Home
             composeTestRule.onNodeWithContentDescription("Back").performClick()
             composeTestRule.waitForIdle()
@@ -157,12 +134,12 @@ class ScreenshotTest {
             }
             composeTestRule.waitForIdle()
 
-            // 6. Home Screen - Dark
+            // 5. Home Screen - Dark
             Thread.sleep(1200)
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
 
-            // 7. Volume Lock Screen - Dark
+            // 6. Volume Lock Screen - Dark
             composeTestRule.onNode(hasText("Volume Lock") and hasClickAction()).performClick()
             composeTestRule.waitForIdle()
             Thread.sleep(1200)
@@ -173,7 +150,7 @@ class ScreenshotTest {
             composeTestRule.onNodeWithContentDescription("Back").performClick()
             composeTestRule.waitForIdle()
 
-            // 8. App Volume Lock Screen - Dark
+            // 7. App Volume Lock Screen - Dark
             composeTestRule.onNode(hasText("App Volume Lock") and hasClickAction()).performClick()
             composeTestRule.waitForIdle()
             Thread.sleep(1200)
@@ -184,23 +161,12 @@ class ScreenshotTest {
             composeTestRule.onNodeWithContentDescription("Back").performClick()
             composeTestRule.waitForIdle()
 
-            // 9. Settings Screen - Dark
+            // 8. Settings Screen - Dark
             composeTestRule.onNode(hasText("Settings") and hasClickAction()).performClick()
             composeTestRule.waitForIdle()
             Thread.sleep(1200)
             Screengrab.screenshot(screenshotCounter.toString())
             screenshotCounter++
-
-            // 10. Diagnostics Logs Screen - Dark
-            composeTestRule.onNodeWithText("View Diagnostics Logs").performClick()
-            composeTestRule.waitForIdle()
-            Thread.sleep(1200)
-            Screengrab.screenshot(screenshotCounter.toString())
-            screenshotCounter++
-
-            // Go back to Settings
-            composeTestRule.onNodeWithContentDescription("Back").performClick()
-            composeTestRule.waitForIdle()
 
             // Go back to Home
             composeTestRule.onNodeWithContentDescription("Back").performClick()
