@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
@@ -284,12 +285,97 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         if (isTesting) return
         viewModelScope.launch {
             _isLoadingApps.value = true
-            val apps = withContext(Dispatchers.IO) { getInstalledAppsFromSystem() }
-            _installedApps.value = apps
-            _isLoadingApps.value = false
-            withContext(Dispatchers.IO) {
-                saveInstalledAppsToPrefs(apps)
+
+            // 1. Get candidate package names first (fast)
+            val candidatePackages = withContext(Dispatchers.IO) {
+                val pm = context.packageManager
+                val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                }
+
+                @Suppress("DEPRECATION")
+                val launcherMatches: List<ResolveInfo> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pm.queryIntentActivities(
+                        launcherIntent,
+                        PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
+                    )
+                } else {
+                    pm.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
+                }
+
+                val launcherPackages = launcherMatches
+                    .asSequence()
+                    .mapNotNull { it.activityInfo?.packageName }
+                    .filter { it != context.packageName }
+                    .toMutableSet()
+
+                @Suppress("DEPRECATION")
+                val installedApplications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
+                } else {
+                    pm.getInstalledApplications(0)
+                }
+
+                val launchableFromInstalled = installedApplications.filter { app ->
+                    app.packageName != context.packageName && pm.getLaunchIntentForPackage(app.packageName) != null
+                }.map { it.packageName }
+
+                launcherPackages.apply { addAll(launchableFromInstalled) }.toList()
             }
+
+            val trackedSet = withContext(Dispatchers.IO) { getTrackedPackages().toSet() }
+
+            // 2. Progressively resolve details for each candidate package
+            withContext(Dispatchers.IO) {
+                val pm = context.packageManager
+                val currentList = _installedApps.value.toMutableList()
+                val resolvedPackages = mutableSetOf<String>()
+
+                for (pkg in candidatePackages) {
+                    val label: String = try {
+                        val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))
+                        } else {
+                            @Suppress("DEPRECATION")
+                            pm.getApplicationInfo(pkg, 0)
+                        }
+                        pm.getApplicationLabel(appInfo).toString()
+                    } catch (e: Exception) {
+                        pkg
+                    }
+
+                    val entry = AppVolumeEntry(
+                        packageName = pkg,
+                        appName = label,
+                        isTracked = trackedSet.contains(pkg),
+                        rememberedMediaVolume = getRememberedVolume(pkg)
+                    )
+
+                    resolvedPackages.add(pkg)
+
+                    // Find and update, or add
+                    val index = currentList.indexOfFirst { it.packageName == pkg }
+                    if (index >= 0) {
+                        currentList[index] = entry
+                    } else {
+                        currentList.add(entry)
+                    }
+
+                    // Keep sorted for clean progressive rendering
+                    val sortedList = currentList.sortedBy { it.appName.lowercase(Locale.getDefault()) }
+                    _installedApps.value = sortedList
+                    yield()
+                }
+
+                // Remove any apps that are no longer installed
+                val finalFilteredList = _installedApps.value.filter { resolvedPackages.contains(it.packageName) }
+                _installedApps.value = finalFilteredList
+
+                // Save final updated list to preferences
+                saveInstalledAppsToPrefs(finalFilteredList)
+            }
+
+            _isLoadingApps.value = false
         }
     }
 
@@ -455,65 +541,4 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         return if (vol >= 0) vol else null
     }
 
-    private fun getInstalledAppsFromSystem(): List<AppVolumeEntry> {
-        val pm = context.packageManager
-        val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_LAUNCHER)
-        }
-
-        @Suppress("DEPRECATION")
-        val launcherMatches: List<ResolveInfo> = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.queryIntentActivities(
-                launcherIntent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_ALL.toLong())
-            )
-        } else {
-            pm.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
-        }
-
-        val launcherPackages = launcherMatches
-            .asSequence()
-            .mapNotNull { it.activityInfo?.packageName }
-            .filter { it != context.packageName }
-            .toMutableSet()
-
-        @Suppress("DEPRECATION")
-        val installedApplications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            pm.getInstalledApplications(PackageManager.ApplicationInfoFlags.of(0))
-        } else {
-            pm.getInstalledApplications(0)
-        }
-
-        val launchableFromInstalled = installedApplications.filter { app ->
-            app.packageName != context.packageName && pm.getLaunchIntentForPackage(app.packageName) != null
-        }.map { it.packageName }
-
-        val candidatePackages = launcherPackages.apply { addAll(launchableFromInstalled) }
-        val trackedSet = getTrackedPackages().toSet()
-
-        return candidatePackages
-            .asSequence()
-            .map { pkg ->
-                val label: String = try {
-                    val appInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        pm.getApplicationInfo(pkg, PackageManager.ApplicationInfoFlags.of(0))
-                    } else {
-                        @Suppress("DEPRECATION")
-                        pm.getApplicationInfo(pkg, 0)
-                    }
-                    pm.getApplicationLabel(appInfo).toString()
-                } catch (e: Exception) {
-                    pkg
-                }
-
-                AppVolumeEntry(
-                    packageName = pkg,
-                    appName = label,
-                    isTracked = trackedSet.contains(pkg),
-                    rememberedMediaVolume = getRememberedVolume(pkg)
-                )
-            }
-            .sortedBy { it.appName.lowercase(Locale.getDefault()) }
-            .toList()
-    }
 }
