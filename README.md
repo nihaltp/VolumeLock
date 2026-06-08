@@ -39,11 +39,11 @@ You can choose exactly which apps are tracked via the built-in app selector (sea
 ## Architecture
 
 ```
-volume_lock/
+volumelock/
 ├── android/
 │   └── app/src/main/
 │       ├── AndroidManifest.xml          # Permissions, services, receivers
-│       ├── kotlin/com/nihaltp/volume_lock/
+│       ├── kotlin/com/nihaltp/volumelock/
 │       │   ├── MainActivity.kt          # Flutter <-> Android MethodChannel bridge
 │       │   ├── VolumeLockService.kt     # Foreground service — Volume Lock
 │       │   ├── AppVolumeLockService.kt  # Foreground service — App Volume Lock
@@ -88,8 +88,8 @@ Flutter UI  --MethodChannel-->  MainActivity
 
 ```bash
 # Clone the repository
-git clone https://github.com/nihaltp/volume_lock.git
-cd volume_lock
+git clone https://github.com/nihaltp/volumelock.git
+cd volumelock
 
 # Install Flutter dependencies
 flutter pub get

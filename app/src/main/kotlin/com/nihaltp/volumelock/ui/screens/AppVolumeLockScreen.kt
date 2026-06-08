@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock.ui.screens
+package com.nihaltp.volumelock.ui.screens
 
 import android.content.Intent
 import android.graphics.Bitmap
@@ -62,8 +62,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nihaltp.volume_lock.ui.viewmodel.AppVolumeEntry
-import com.nihaltp.volume_lock.ui.viewmodel.VolumeLockViewModel
+import com.nihaltp.volumelock.ui.viewmodel.AppVolumeEntry
+import com.nihaltp.volumelock.ui.viewmodel.VolumeLockViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

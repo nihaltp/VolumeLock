@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock.ui.theme
+package com.nihaltp.volumelock.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme

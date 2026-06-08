@@ -1,17 +1,16 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.printToLog
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.nihaltp.volume_lock.ui.viewmodel.AppVolumeEntry
-import com.nihaltp.volume_lock.ui.viewmodel.VolumeState
+import com.nihaltp.volumelock.ui.viewmodel.AppVolumeEntry
+import com.nihaltp.volumelock.ui.viewmodel.VolumeState
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test

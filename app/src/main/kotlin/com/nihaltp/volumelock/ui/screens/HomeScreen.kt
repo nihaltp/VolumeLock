@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock.ui.screens
+package com.nihaltp.volumelock.ui.screens
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -42,13 +42,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nihaltp.volume_lock.ui.viewmodel.VolumeLockViewModel
+import com.nihaltp.volumelock.ui.viewmodel.VolumeLockViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,7 +172,7 @@ fun FeatureCard(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    
+
     // Scale animation when card is pressed
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,

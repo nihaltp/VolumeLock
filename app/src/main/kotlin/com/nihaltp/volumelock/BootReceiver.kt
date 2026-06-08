@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -23,7 +23,8 @@ class BootReceiver : BroadcastReceiver() {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
 
         val prefs = context.getSharedPreferences(
-            "volume_lock_prefs", Context.MODE_PRIVATE
+            "volume_lock_prefs",
+            Context.MODE_PRIVATE
         )
 
         if (prefs.getBoolean("volume_lock_enabled", false)) {

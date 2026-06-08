@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -19,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.nihaltp.volume_lock.ui.screens.AppVolumeLockScreen
-import com.nihaltp.volume_lock.ui.screens.HomeScreen
-import com.nihaltp.volume_lock.ui.screens.LogViewerScreen
-import com.nihaltp.volume_lock.ui.screens.SettingsScreen
-import com.nihaltp.volume_lock.ui.screens.VolumeLockScreen
-import com.nihaltp.volume_lock.ui.theme.VolumeLockTheme
-import com.nihaltp.volume_lock.ui.viewmodel.VolumeLockViewModel
+import com.nihaltp.volumelock.ui.screens.AppVolumeLockScreen
+import com.nihaltp.volumelock.ui.screens.HomeScreen
+import com.nihaltp.volumelock.ui.screens.LogViewerScreen
+import com.nihaltp.volumelock.ui.screens.SettingsScreen
+import com.nihaltp.volumelock.ui.screens.VolumeLockScreen
+import com.nihaltp.volumelock.ui.theme.VolumeLockTheme
+import com.nihaltp.volumelock.ui.viewmodel.VolumeLockViewModel
 
 class MainActivity : ComponentActivity() {
 

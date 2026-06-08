@@ -1,10 +1,10 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -108,10 +108,10 @@ class VolumeLockService : Service() {
     // ── Volume management ─────────────────────────────────────────────────
 
     private fun captureVolumes() {
-        lockedMedia        = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-        lockedRing         = audioManager.getStreamVolume(AudioManager.STREAM_RING)
+        lockedMedia = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        lockedRing = audioManager.getStreamVolume(AudioManager.STREAM_RING)
         lockedNotification = audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
-        lockedAlarm        = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+        lockedAlarm = audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
         updateNotification()
     }
 
@@ -141,11 +141,11 @@ class VolumeLockService : Service() {
     private fun revertIfLocked(stream: Int) {
         if (!shouldEnforceLock()) return
         val target = when (stream) {
-            AudioManager.STREAM_MUSIC        -> lockedMedia
-            AudioManager.STREAM_RING         -> lockedRing
+            AudioManager.STREAM_MUSIC -> lockedMedia
+            AudioManager.STREAM_RING -> lockedRing
             AudioManager.STREAM_NOTIFICATION -> lockedNotification
-            AudioManager.STREAM_ALARM        -> lockedAlarm
-            else                             -> -1
+            AudioManager.STREAM_ALARM -> lockedAlarm
+            else -> -1
         }
         if (target < 0) return
         val current = audioManager.getStreamVolume(stream)
@@ -196,13 +196,25 @@ class VolumeLockService : Service() {
 
     private fun registerVolumeObservers() {
         contentResolver.registerContentObserver(
-            Settings.System.CONTENT_URI, true, mediaObserver)
+            Settings.System.CONTENT_URI,
+            true,
+            mediaObserver
+        )
         contentResolver.registerContentObserver(
-            Settings.System.CONTENT_URI, true, ringObserver)
+            Settings.System.CONTENT_URI,
+            true,
+            ringObserver
+        )
         contentResolver.registerContentObserver(
-            Settings.System.CONTENT_URI, true, notificationObserver)
+            Settings.System.CONTENT_URI,
+            true,
+            notificationObserver
+        )
         contentResolver.registerContentObserver(
-            Settings.System.CONTENT_URI, true, alarmObserver)
+            Settings.System.CONTENT_URI,
+            true,
+            alarmObserver
+        )
     }
 
     private fun unregisterVolumeObservers() {
@@ -216,14 +228,15 @@ class VolumeLockService : Service() {
 
     private fun buildNotification(): Notification {
         val pendingIntent = PendingIntent.getActivity(
-            this, 0,
+            this,
+            0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )
 
         val contentText = if (shouldEnforceLock()) {
             "Locked — Media: $lockedMedia | Ring: $lockedRing | " +
-                    "Notification: $lockedNotification | Alarm: $lockedAlarm"
+                "Notification: $lockedNotification | Alarm: $lockedAlarm"
         } else {
             "Monitoring volume — screen is on"
         }

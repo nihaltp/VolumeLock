@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock.ui.screens
+package com.nihaltp.volumelock.ui.screens
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -50,7 +50,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nihaltp.volume_lock.ui.viewmodel.VolumeLockViewModel
+import com.nihaltp.volumelock.ui.viewmodel.VolumeLockViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

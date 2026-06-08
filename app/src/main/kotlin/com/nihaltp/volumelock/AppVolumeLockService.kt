@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
 import android.app.Notification
 import android.app.NotificationManager
@@ -36,11 +36,11 @@ class AppVolumeLockService : Service() {
         private const val NOTIFICATION_ID = 1002
 
         /** Broadcast action sent by [AppVolumeAccessibilityService]. */
-        const val ACTION_APP_CHANGED = "com.nihaltp.volume_lock.ACTION_APP_CHANGED"
+        const val ACTION_APP_CHANGED = "com.nihaltp.volumelock.ACTION_APP_CHANGED"
         const val EXTRA_PACKAGE_NAME = "packageName"
 
         /** Broadcast action sent by [MainActivity] to update tracked packages. */
-        const val ACTION_UPDATE_PACKAGES = "com.nihaltp.volume_lock.ACTION_UPDATE_PACKAGES"
+        const val ACTION_UPDATE_PACKAGES = "com.nihaltp.volumelock.ACTION_UPDATE_PACKAGES"
         const val EXTRA_TRACKED_PACKAGES = "trackedPackages"
     }
 
@@ -48,7 +48,7 @@ class AppVolumeLockService : Service() {
 
     // packageName → remembered media volume
     private val rememberedVolumes = mutableMapOf<String, Int>()
-    private val trackedPackages   = mutableSetOf<String>()
+    private val trackedPackages = mutableSetOf<String>()
     private var currentForegroundApp: String? = null
 
     // ── Helper methods for SharedPreferences & Logging ─────────────────────
@@ -243,7 +243,8 @@ class AppVolumeLockService : Service() {
 
     private fun buildNotification(): Notification {
         val pendingIntent = PendingIntent.getActivity(
-            this, 0,
+            this,
+            0,
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE
         )

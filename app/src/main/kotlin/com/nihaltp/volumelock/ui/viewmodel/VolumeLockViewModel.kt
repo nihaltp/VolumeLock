@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock.ui.viewmodel
+package com.nihaltp.volumelock.ui.viewmodel
 
 import android.app.Application
 import android.app.NotificationManager
@@ -14,9 +14,9 @@ import android.provider.Settings
 import android.text.TextUtils
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.nihaltp.volume_lock.AppVolumeAccessibilityService
-import com.nihaltp.volume_lock.AppVolumeLockService
-import com.nihaltp.volume_lock.VolumeLockService
+import com.nihaltp.volumelock.AppVolumeAccessibilityService
+import com.nihaltp.volumelock.AppVolumeLockService
+import com.nihaltp.volumelock.VolumeLockService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -540,5 +540,4 @@ class VolumeLockViewModel(application: Application) : AndroidViewModel(applicati
         val vol = prefs.getInt(key, -1)
         return if (vol >= 0) vol else null
     }
-
 }

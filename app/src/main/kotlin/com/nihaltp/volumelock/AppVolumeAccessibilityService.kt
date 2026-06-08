@@ -1,4 +1,4 @@
-package com.nihaltp.volume_lock
+package com.nihaltp.volumelock
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
