@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.0.0] - 2026-06-08
+
+### Added
+
+- 1c351ef  feat: Add background-aware App Volume Lock feature
+- 8e782b0  feat: Cache Installed Apps and Load in Background
+
+### Style
+
+- b1515a1  style: change the windowBackground to ic launcher background color
+- 5e42988  style: add dark theme and material you support
+
+### Refactor
+
+- 53ac655  refactor: migrate app to native Android
+
+### Documentation
+
+- 46c52ad  docs: Update documentation and comments to reflect native Jetpack Compose architecture
+
+### Performance
+
+- 6cfbdaf  perf: Progressive App Loading (One-by-One)
+
+### Maintenance
+
+- 95d13cb  chore: update pre-commit config
+- 2e863a5  chore: Add GitHub PR and Issue templates
+- 30f93bb  chore: remove log screen from screenshots
+- 5bc489b  chore: make builds faster
+- 2026709  chore: add fastlane screenshot
+- a512800  chore: add fastlane
+- a08eb73  chore: remove unwanted files
+- 9ba99a0  chore: add pre-commit config
+
+### Other
+
+- e582c49  change app name to volumelock
+- 689f0ca  fixup
+
+# Changelog
+
 ## [1.2.0] - 2026-06-07
 
 ### Fixed
