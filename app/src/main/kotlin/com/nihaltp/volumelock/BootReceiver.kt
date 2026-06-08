@@ -9,13 +9,10 @@ import android.os.Build
  * Receives [Intent.ACTION_BOOT_COMPLETED] and restarts the volume services
  * that were active before the device rebooted.
  *
- * Flutter's shared_preferences plugin stores values under the
- * "FlutterSharedPreferences" preference file with a "flutter." key prefix.
- * We only need to read boolean flags here (simple to decode).
- *
- * Tracked app lists are re-supplied by the Flutter side the next time the
- * user opens the app, so services are started with an empty list on boot and
- * fill in the packages once the UI is loaded.
+ * This receiver reads flags directly from the native SharedPreferences
+ * ("volume_lock_prefs"). The services are restarted with their previous
+ * settings, and the AppVolumeLockService will load the tracked package list
+ * from SharedPreferences on startup.
  */
 class BootReceiver : BroadcastReceiver() {
 
