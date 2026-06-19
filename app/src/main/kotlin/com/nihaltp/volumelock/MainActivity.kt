@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
                 NotificationChannel(
                     VolumeLockService.CHANNEL_ID,
                     "Volume Lock",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_MIN
                 ).apply { description = "Volume Lock foreground service" }
             )
 
@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity() {
                 NotificationChannel(
                     AppVolumeLockService.CHANNEL_ID,
                     "App Volume Lock",
-                    NotificationManager.IMPORTANCE_LOW
+                    NotificationManager.IMPORTANCE_MIN
                 ).apply { description = "App Volume Lock foreground service" }
             )
         }
