@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.2] - 2026-06-24
+
+### Maintenance
+
+- f778880  chore: reverse commit order
+- b2eab6b  chore: add git attributes
+- 9900837  chore: add github action for releasing apk
+- e40d3cf  chore: remove uploading release apk files
+
+# Changelog
+
 ## [2.0.1] - 2026-06-24
 
 ### Added
