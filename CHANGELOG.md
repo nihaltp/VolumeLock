@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.1] - 2026-06-24
+
+### Added
+
+- 7c32540  feat: minimize foreground service notification visibility
+
+### Maintenance
+
+- b0c4932  chore: create dependabot.yml
+- 6bd9e0d  chore: update mergify to merge dependabot pr
+- 071df85  chore: bump fastlane from 2.235.0 to 2.236.1
+- 931b744  chore: use html in fastlane files
+- 869b4a2  chore: update gradle.properties
+- 71e733e  chore: remove apk splits
+- 70486d2  chore: remove proguard
+- cf76b64  chore: bump androidx.test.ext:junit from 1.1.5 to 1.3.0
+
+# Changelog
+
 ## [2.0.0] - 2026-06-08
 
 ### Added
