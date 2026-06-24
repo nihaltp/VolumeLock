@@ -291,37 +291,19 @@ platform :android do
     sh("git tag #{tag_name}")
     puts "Created local git tag #{tag_name}"
 
-    # 8. Build release APKs
-    puts "Building release APKs..."
-    build_release
-
-    # 9. Push current branch and tag to GitHub
+    # 8. Push current branch and tag to GitHub
     current_branch = `git rev-parse --abbrev-ref HEAD`.strip
     puts "Pushing branch #{current_branch} and tag #{tag_name} to origin..."
     sh("git push origin #{current_branch}")
     sh("git push origin #{tag_name} --force")
 
-    # 10. Create GitHub Release using gh CLI and upload all release APKs as assets
-    # Get all .apk files in the release outputs
-    release_apk_dir = File.join(project_root, "app", "build", "outputs", "apk", "release")
-    apk_files = Dir.glob(File.join(release_apk_dir, "**", "*.apk"))
-    if apk_files.empty?
-      raise "No release APK files found to upload in #{release_apk_dir}!"
-    end
-
-    puts "Uploading the following APKs as assets:"
-    apk_files.each { |f| puts "- #{File.basename(f)}" }
-
-    # Convert apk file paths to space-separated string for command
-    # Quote the paths to handle any potential spaces or special characters
-    apk_files_str = apk_files.map { |f| "\"#{f}\"" }.join(" ")
-
+    # 9. Create GitHub Release using gh CLI
     # Delete remote release first if it already exists to avoid conflict
     sh("gh release delete #{tag_name} --yes") rescue nil
 
     # Run gh release create
     puts "Creating GitHub Release #{tag_name}..."
-    sh("gh release create #{tag_name} #{apk_files_str} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
+    sh("gh release create #{tag_name} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
     puts "GitHub Release #{tag_name} successfully created!"
   end
 
