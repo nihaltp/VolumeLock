@@ -4,6 +4,10 @@ A native Android application written in Kotlin and Jetpack Compose that gives yo
 
 ---
 
+![Repobeats analytics image](https://repobeats.axiom.co/api/embed/868184515791e04c50a9f1b1f537e02ce1d6e010.svg "Repobeats analytics image")
+
+---
+
 ## Features
 
 ### 🔒 Volume Lock
