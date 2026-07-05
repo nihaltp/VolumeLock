@@ -4,6 +4,22 @@ A native Android application written in Kotlin and Jetpack Compose that gives yo
 
 ---
 
+## Download
+
+Available on my F-Droid repository:
+
+<img src="https://raw.githubusercontent.com/nihaltp/fdroid/main/repo/index.png" width="100" height="100" align="right" alt="F-Droid QR Code">
+
+**Repository URL:**
+
+```text
+https://nihaltp.github.io/fdroid/repo/
+```
+
+[Open Repo Page](https://nihaltp.github.io/fdroid/repo/) and scan the QR code.
+
+---
+
 ![Repobeats analytics image](https://repobeats.axiom.co/api/embed/868184515791e04c50a9f1b1f537e02ce1d6e010.svg "Repobeats analytics image")
 
 ---
