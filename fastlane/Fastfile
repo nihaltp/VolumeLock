@@ -299,13 +299,24 @@ platform :android do
     sh("git push origin #{current_branch}")
     sh("git push origin #{tag_name} --force")
 
-    # Delete remote release first if it already exists to avoid conflict
-    sh("gh release delete #{tag_name} --yes") rescue nil
-
-    # Create GitHub Release
-    puts "Creating GitHub Release #{tag_name}..."
-    sh("gh release create #{tag_name} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
-    puts "GitHub Release #{tag_name} successfully created!"
+    max_retries = 3
+    attempt = 0
+    begin
+      attempt += 1
+      sh("gh release delete #{tag_name} --yes") rescue nil
+      puts "Creating GitHub Release #{tag_name} (Attempt #{attempt}/#{max_retries})..."
+      sh("gh release create #{tag_name} --title \"#{tag_name}\" -F \"#{changelog_txt_path}\"")
+      puts "GitHub Release #{tag_name} successfully created!"
+    rescue => e
+      if attempt < max_retries
+        wait = attempt * 30
+        puts "GitHub release creation failed. Retrying in #{wait}s..."
+        sleep(wait)
+        retry
+      else
+        raise e
+      end
+    end
   end
 
   desc "Run tests"
