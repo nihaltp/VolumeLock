@@ -1,5 +1,7 @@
 # Volume Lock
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE) [![Platform: Android](https://img.shields.io/badge/Platform-Android-green.svg?style=for-the-badge)](#) [![Total Github Downloads (All Assets)](https://img.shields.io/github/downloads/nihaltp/VolumeLock/total?style=for-the-badge&logo=github)](https://github.com/nihaltp/VolumeLock/releases/latest)
+
 A native Android application written in Kotlin and Jetpack Compose that gives you fine-grained control over your device's audio volumes through two complementary features: **Volume Lock** and **App Volume Lock**.
 
 ---
