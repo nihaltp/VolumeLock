@@ -1,6 +1,6 @@
 // Top-level build file for native Android application.
 buildscript {
-    ext.kotlin_version = '1.9.22'
+    ext.kotlin_version = '2.4.10'
     repositories {
         google()
         mavenCentral()
